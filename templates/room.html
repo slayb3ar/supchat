@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Chat Example</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Added viewport meta tag -->
+    <title>SupChat</title>
     <script>
         window.onload = function () {
             var conn;
@@ -81,34 +82,43 @@
             color: #ffffff;
             margin: 0;
             padding: 0;
-            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh; /* Ensures full height */
+        }
+
+        header {
+            background-color: #333333;
+            padding: 10px;
+            text-align: center;
+        }
+
+        header a {
+            color: #ffffff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        header a:hover {
+            text-decoration: underline;
         }
 
         #log {
             background-color: #222222;
             border: 2px solid #444444;
             border-radius: 8px;
-            margin: 0;
+            margin: 10px; /* Added margin for spacing */
             padding: 10px;
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            right: 10px;
-            bottom: 3em;
+            flex: 1; /* Use flex to fill remaining space */
             overflow: auto;
         }
 
         #form {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            margin: 0;
-            padding: 10px;
-            background-color: #222222;
-            border-top: 2px solid #444444;
             display: flex;
             align-items: center;
+            background-color: #222222;
+            padding: 10px;
+            margin: 10px; /* Added margin for spacing */
         }
 
         #msg {
@@ -150,9 +160,12 @@
     </style>
 </head>
 <body>
+    <header>
+        <a href="/">Home</a> <!-- Added a link to the home page -->
+    </header>
     <div id="log"></div>
     <form id="form">
-        <input type="text" id="msg" size="64" autofocus placeholder="Enter message...">
+        <input type="text" id="msg" size="30" autofocus placeholder="Enter message...">
         <input type="submit" value="Send">
     </form>
 </body>
