@@ -17,6 +17,9 @@ type Hub struct {
 
 	// Unregister requests from clients.
 	unregister chan *Client
+
+	// Chat history
+ 	history    []string
 }
 
 // newHub initializes a new Hub.
@@ -26,6 +29,7 @@ func newHub() *Hub {
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 		clients:    make(map[*Client]bool),
+		history: 	make([]string, 0),
 	}
 }
 
@@ -37,6 +41,12 @@ func (h *Hub) run() {
 		case client := <-h.register:
 			// Register a new client.
 			h.clients[client] = true
+
+			// Send history to new client
+            for _, msg := range h.history {
+                client.send <- []byte(msg)
+            }
+
 		case client := <-h.unregister:
 			// Unregister an existing client.
 			if _, ok := h.clients[client]; ok {
@@ -45,6 +55,7 @@ func (h *Hub) run() {
 			}
 		case message := <-h.broadcast:
 			// Broadcast a message to all registered clients.
+			h.history = append(h.history, string(message))
 			for client := range h.clients {
 				select {
 				case client.send <- message:
