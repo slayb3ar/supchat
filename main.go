@@ -32,7 +32,7 @@ func usernameMiddleware(rm *RoomManager, next http.Handler) http.Handler {
 		if username == "" {
 	    	err := "Username is required"
 	     	log.Println(err)
-	     	http.Redirect(w, r, "/start", 302)
+	     	http.ServeFile(w, r, "templates/start.html")
 	    }
 
 		// OK

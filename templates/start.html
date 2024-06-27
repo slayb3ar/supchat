@@ -76,7 +76,7 @@
             var username = document.getElementById("username").value.trim();
             if (username !== "") {
                 document.cookie = `username=${username}`;
-                window.location.href = `/`;
+                window.location.reload()
             }
         };
     </script>
