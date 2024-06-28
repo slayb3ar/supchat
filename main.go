@@ -9,69 +9,61 @@ import (
 	"net/http"
 	"html/template"
 )
-
-//
-// Username middleware
-//
-func usernameMiddleware(rm *RoomManager, next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Check if GET request
-		if r.Method != http.MethodGet {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
-		// Check username exists
-	    username := ""
-	    cookies := r.Cookies()
-	    for _, c := range cookies {
-	        if c.Name == "username" {
-	            username = c.Value
-	        }
-	    }
-		if username == "" {
-	    	err := "Username is required"
-	     	log.Println(err)
-	     	http.ServeFile(w, r, "templates/start.html")
-	    }
-
-		// OK
-		next.ServeHTTP(w, r)
-	})
-}
-
 //
 // Serves start page
 //
 func serveStart(w http.ResponseWriter, r *http.Request) {
+	// Check if GET request
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	http.ServeFile(w, r, "templates/start.html")
 }
 
 //
 // Serves home page
 //
-func serveHome(rm *RoomManager) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		tmpl, err := template.ParseFiles("templates/home.html")
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		err = tmpl.Execute(w, rm)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-	})
+func serveHome(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
+	// Check if GET request
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	tmpl, err := template.ParseFiles("templates/home.html")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	err = tmpl.Execute(w, rm)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 //
 // Serves chat room page
 //
-func serveChat(rm *RoomManager) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "templates/room.html")
-	})
+func serveChat(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
+	// Check username exists
+    username := ""
+    cookies := r.Cookies()
+    for _, c := range cookies {
+        if c.Name == "username" {
+            username = c.Value
+        }
+    }
+	if username == "" {
+    	err := "Username is required"
+     	log.Println(err)
+     	http.ServeFile(w, r, "templates/start.html")
+    }
+
+    // OK
+    http.ServeFile(w, r, "templates/room.html")
 }
 
 //
@@ -108,6 +100,9 @@ func serveWs(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Register user under room
+	rm.Usernames[username] = roomID
+
 	// Create a new client and register it with the hub.
 	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256), username: username}
 	client.hub.register <- client
@@ -120,11 +115,22 @@ func serveWs(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
 
 
 func main() {
+	// Setup chat room manager
 	var roomManager = newRoomManager()
+
+	// Setup MUX
 	mux := http.NewServeMux()
+
+	// Static assets
  	mux.Handle("/design/", http.StripPrefix("/design/", http.FileServer(http.Dir("design"))))
-	mux.Handle("/", usernameMiddleware(roomManager, serveHome(roomManager)))
-	mux.Handle("/{chatRoom}", usernameMiddleware(roomManager, serveChat(roomManager)))
+
+  	// Routes
+  	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		serveHome(roomManager, w, r)
+	})
+   	mux.HandleFunc("/{chatRoom}", func(w http.ResponseWriter, r *http.Request) {
+		serveChat(roomManager, w, r)
+	})
 	mux.HandleFunc("/start", func(w http.ResponseWriter, r *http.Request) {
 		serveStart(w, r)
 	})
