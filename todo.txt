@@ -1,0 +1,6 @@
+backend
+- [x] persist messages in channel for all viewers
+- [x] username uniquness
+- [] send message for user leaving / joining
+- [] track users actually online (connected)
+- [] final styling on all 3 pages
