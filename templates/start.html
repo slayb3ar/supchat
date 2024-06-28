@@ -64,21 +64,11 @@
     </style>
 </head>
 <body>
-    <form id="form">
+    <form action="/start" method="post">
         <h1>Sup {username}</h1>
-        <input type="text" id="username" size="30" autofocus placeholder="Enter username...">
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username" placeholder="Enter username..." autofocus required>
         <input type="submit" value="Join Chat">
     </form>
-
-    <script>
-        document.getElementById("form").onsubmit = function (event) {
-            event.preventDefault();
-            var username = document.getElementById("username").value.trim();
-            if (username !== "") {
-                document.cookie = `username=${username}`;
-                window.location.reload()
-            }
-        };
-    </script>
 </body>
 </html>

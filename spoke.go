@@ -54,6 +54,7 @@ type Client struct {
 type RoomManager struct {
 	Rooms map[string]*Hub
 	Usernames map[string]string
+	Sessions  map[string]string
 	mu    sync.Mutex
 }
 
@@ -61,6 +62,7 @@ func newRoomManager() *RoomManager {
     return &RoomManager{
         Rooms:     make(map[string]*Hub),
         Usernames: make(map[string]string),
+        Sessions:  make(map[string]string),
     }
 }
 
