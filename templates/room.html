@@ -115,11 +115,16 @@
 
         #form {
             display: flex;
+            flex-wrap: wrap; /* Allow items to wrap */
             align-items: center;
             background-color: #222222;
             padding: 10px;
             margin: 10px; /* Added margin for spacing */
+            max-width: 100%; /* Ensure form doesn't exceed screen width */
+            box-sizing: border-box; /* Include padding and borders in width calculation */
+            overflow: hidden; /* Prevent horizontal scroll */
         }
+
 
         #msg {
             flex: 1;
@@ -161,7 +166,7 @@
 </head>
 <body>
     <header>
-        <a href="/">Home</a> <!-- Added a link to the home page -->
+        <a href="/">SupChat 🏠</a> <!-- Added a link to the home page -->
     </header>
     <div id="log"></div>
     <form id="form">
