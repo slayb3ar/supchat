@@ -47,6 +47,12 @@ func getUsernameFromSession(rm *RoomManager, r *http.Request) string {
 // Serves start page
 //
 func serveStart(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
+	// Check if POST request
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	if r.Method == http.MethodPost {
 		r.ParseForm()
 		username := r.FormValue("username")
@@ -77,11 +83,9 @@ func serveStart(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
 			HttpOnly: true,
 		})
 
-		http.Redirect(w, r, "/home", http.StatusSeeOther)
+		http.Redirect(w, r, r.Header.Get("Referer"), 302)
 		return
 	}
-
-	http.ServeFile(w, r, "templates/start.html")
 }
 
 
@@ -89,12 +93,14 @@ func serveStart(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
 // Serves home page
 //
 func serveHome(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
-	// Check if GET request
+	if r.URL.Path != "/" {
+      http.NotFound(w, r)
+      return
+   	}
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-
 	tmpl, err := template.ParseFiles("templates/home.html")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -112,8 +118,9 @@ func serveHome(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
 //
 func serveChat(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
 	username := getUsernameFromSession(rm, r)
+	log.Println("Getting username...", username)
 	if username == "" {
-		http.Redirect(w, r, "/start", http.StatusSeeOther)
+		http.ServeFile(w, r, "templates/start.html")
 		return
 	}
 	http.ServeFile(w, r, "templates/room.html")
@@ -174,11 +181,11 @@ func main() {
   	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		serveHome(roomManager, w, r)
 	})
-   	mux.HandleFunc("/{chatRoom}", func(w http.ResponseWriter, r *http.Request) {
-		serveChat(roomManager, w, r)
-	})
-	mux.HandleFunc("/start", func(w http.ResponseWriter, r *http.Request) {
+  	mux.HandleFunc("/start", func(w http.ResponseWriter, r *http.Request) {
 		serveStart(roomManager, w, r)
+	})
+   	mux.HandleFunc("/c/{chatRoom}", func(w http.ResponseWriter, r *http.Request) {
+		serveChat(roomManager, w, r)
 	})
 	mux.HandleFunc("/ws/{chatRoom}", func(w http.ResponseWriter, r *http.Request) {
 		serveWs(roomManager, w, r)

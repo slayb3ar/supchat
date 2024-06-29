@@ -151,7 +151,7 @@
                 <tr>
                 <td>{{ $roomName }}</td>
                 <td>{{ len $hub.Clients }}</td>
-                <td><a href="{{ $roomName }}">Join Room</td>
+                <td><a href="c/{{ $roomName }}">Join Room</td>
                 </tr>
             {{ end }}
         </table>
@@ -162,7 +162,7 @@
             event.preventDefault();
             var roomName = document.getElementById("group").value.trim();
             if (roomName !== "") {
-                window.location.href = `/${roomName}`;
+                window.location.href = `/c/${roomName}`;
             }
         };
     </script>
