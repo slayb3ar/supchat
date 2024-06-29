@@ -3,4 +3,8 @@ backend
 - [x] username uniquness
 - [] send message for user leaving / joining
 - [] track users actually online (connected)
+- [] secure user session
+- [] search on home table
+- [] comments / documentation / naming
+- [] 404 / catchall
 - [] final styling on all 3 pages
