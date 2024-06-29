@@ -12,7 +12,9 @@ import (
 	"net/http"
 )
 
+//
 // Generate session token
+//
 func generateSessionToken() string {
 	bytes := make([]byte, 16)
 	if _, err := rand.Read(bytes); err != nil {
@@ -21,7 +23,9 @@ func generateSessionToken() string {
 	return hex.EncodeToString(bytes)
 }
 
+//
 // Get username from session
+//
 func getUsernameFromSession(rm *RoomManager, r *http.Request) string {
 	cookie, err := r.Cookie("session_token")
 	if err != nil {
@@ -39,44 +43,17 @@ func getUsernameFromSession(rm *RoomManager, r *http.Request) string {
 	return username
 }
 
-// Serves start page
-func serveStart(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodPost {
-		r.ParseForm()
-		username := r.FormValue("username")
-
-		if username == "" {
-			http.Error(w, "Username is required", http.StatusBadRequest)
-			return
-		}
-
-		rm.mu.Lock()
-		defer rm.mu.Unlock()
-
-		if _, exists := rm.Usernames[username]; exists {
-			http.Error(w, "Username is already taken", http.StatusConflict)
-			return
-		}
-
-		// Register the username
-		sessionToken := generateSessionToken()
-		rm.Usernames[username] = sessionToken
-		rm.Sessions[sessionToken] = username
-
-		http.SetCookie(w, &http.Cookie{
-			Name:  "session_token",
-			Value: sessionToken,
-			Path:  "/",
-			// Secure: true, // Uncomment this in production
-			HttpOnly: true,
-		})
-
-		http.Redirect(w, r, r.Header.Get("Referer"), 302)
-		return
-	}
+//
+// Serves chat room page
+//
+func serve404(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "templates/404.html")
 }
 
+
+//
 // Serves home page
+//
 func serveHome(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
 	tmpl, err := template.ParseFiles("templates/home.html")
 	if err != nil {
@@ -90,10 +67,48 @@ func serveHome(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+//
+// Serves start page
+//
+func serveStart(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	username := r.FormValue("username")
+
+	if username == "" {
+		http.Error(w, "Username is required", http.StatusBadRequest)
+		return
+	}
+
+	rm.mu.Lock()
+	defer rm.mu.Unlock()
+
+	if _, exists := rm.Usernames[username]; exists {
+		http.Error(w, "Username is already taken", http.StatusConflict)
+		return
+	}
+
+	// Register the username
+	sessionToken := generateSessionToken()
+	rm.Usernames[username] = sessionToken
+	rm.Sessions[sessionToken] = username
+
+	http.SetCookie(w, &http.Cookie{
+		Name:  "session_token",
+		Value: sessionToken,
+		Path:  "/",
+		// Secure: true, // Uncomment this in production
+		HttpOnly: true,
+	})
+
+	http.Redirect(w, r, r.Header.Get("Referer"), 302)
+	return
+}
+
+//
 // Serves chat room page
+//
 func serveChat(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
 	username := getUsernameFromSession(rm, r)
-	log.Println("Getting username...", username)
 	if username == "" {
 		http.ServeFile(w, r, "templates/start.html")
 		return
@@ -101,7 +116,9 @@ func serveChat(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "templates/room.html")
 }
 
+//
 // serveWs handles websocket requests from the peer.
+//
 func serveWs(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
 	// get room id and assosicated hub
 	roomID := r.PathValue("chatRoom")
@@ -150,6 +167,9 @@ func main() {
 	mux.Handle("GET /assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("assets"))))
 
 	// Routes
+	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
+		serve404(w, r)
+	})
 	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
 		serveHome(roomManager, w, r)
 	})
