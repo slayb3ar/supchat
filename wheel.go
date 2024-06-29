@@ -4,18 +4,18 @@
 
 package main
 
-// Hub maintains the set of active clients and broadcasts messages to the clients.
+// Hub maintains the set of active Clients and broadcasts messages to the Clients.
 type Hub struct {
-	// Registered clients.
-	clients map[*Client]bool
+	// Registered Clients.
+	Clients map[*Client]bool
 
-	// Inbound messages from the clients.
+	// Inbound messages from the Clients.
 	broadcast chan []byte
 
-	// Register requests from the clients.
+	// Register requests from the Clients.
 	register chan *Client
 
-	// Unregister requests from clients.
+	// Unregister requests from Clients.
 	unregister chan *Client
 
 	// Chat history
@@ -28,7 +28,7 @@ func newHub() *Hub {
 		broadcast:  make(chan []byte),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
-		clients:    make(map[*Client]bool),
+		Clients:    make(map[*Client]bool),
 		history: 	make([]string, 0),
 	}
 }
@@ -40,7 +40,7 @@ func (h *Hub) run() {
 		select {
 		case client := <-h.register:
 			// Register a new client.
-			h.clients[client] = true
+			h.Clients[client] = true
 
 			// Send history to new client
             for _, msg := range h.history {
@@ -49,21 +49,21 @@ func (h *Hub) run() {
 
 		case client := <-h.unregister:
 			// Unregister an existing client.
-			if _, ok := h.clients[client]; ok {
-				delete(h.clients, client)
+			if _, ok := h.Clients[client]; ok {
+				delete(h.Clients, client)
 				close(client.send)
 			}
 		case message := <-h.broadcast:
-			// Broadcast a message to all registered clients.
+			// Broadcast a message to all registered Clients.
 			h.history = append(h.history, string(message))
-			for client := range h.clients {
+			for client := range h.Clients {
 				select {
 				case client.send <- message:
 					// Successfully sent the message to the client.
 				default:
 					// Failed to send the message, assume client is unresponsive and clean up.
 					close(client.send)
-					delete(h.clients, client)
+					delete(h.Clients, client)
 				}
 			}
 		}

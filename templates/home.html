@@ -64,7 +64,6 @@
 
         #form {
             margin-top: 20px;
-            text-align: center;
         }
 
         input[type="text"] {
@@ -94,6 +93,41 @@
         input[type="submit"]:hover {
             background-color: #555555;
         }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #444444;
+        }
+
+        th {
+            background-color: #333333;
+            color: #ffffff;
+            font-weight: bold;
+        }
+
+        tr:nth-child(even) {
+            background-color: #2a2a2a;
+        }
+
+        tr:hover {
+            background-color: #3a3a3a;
+        }
+
+        a {
+            color: #1e90ff;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -101,18 +135,26 @@
         <h1>SupChat</h1>
         <h2>Number of Rooms: {{ len .Rooms }}</h2>
         <h2>Number of Users: {{ len .Usernames }}</h2>
-        <h2>Available Rooms:</h2>
-        <ul>
-            {{ range $roomName, $_ := .Rooms }}
-                <li><a href="{{ $roomName }}">{{ $roomName }}</a></li>
-            {{ end }}
-        </ul>
         <hr>
-        <h4>Start/Join Group</h4>
+        <h4>Find Group</h4>
         <form id="form">
             <input type="text" id="group" size="30" autofocus placeholder="Enter room name...">
             <input type="submit" value="Go">
         </form>
+        <table>
+            <tr>
+                <td>Room</td>
+                <td>Users</td>
+                <td>...</td>
+            </tr>
+            {{ range $roomName, $hub := .Rooms }}
+                <tr>
+                <td>{{ $roomName }}</td>
+                <td>{{ len $hub.Clients }}</td>
+                <td><a href="{{ $roomName }}">Join Room</td>
+                </tr>
+            {{ end }}
+        </table>
     </div>
 
     <script>
