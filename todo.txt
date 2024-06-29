@@ -1,10 +1,12 @@
 backend
 - [x] persist messages in channel for all viewers
 - [x] username uniquness
+- [x] 404 / catchall
+
 - [] send message for user leaving / joining
 - [] track users actually online (connected)
 - [] secure user session
 - [] search on home table
 - [] comments / documentation / naming
-- [] 404 / catchall
 - [] final styling on all 3 pages
+- [] persistence?? (UNSURE)
