@@ -4,6 +4,10 @@
 
 package main
 
+import (
+	"log"
+)
+
 // Hub maintains the set of active Clients and broadcasts messages to the Clients.
 type Hub struct {
 	// Registered Clients.
