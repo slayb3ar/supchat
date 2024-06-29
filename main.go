@@ -41,12 +41,6 @@ func getUsernameFromSession(rm *RoomManager, r *http.Request) string {
 
 // Serves start page
 func serveStart(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
-	// Check if POST request
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	if r.Method == http.MethodPost {
 		r.ParseForm()
 		username := r.FormValue("username")
@@ -84,14 +78,6 @@ func serveStart(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
 
 // Serves home page
 func serveHome(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/" {
-		http.NotFound(w, r)
-		return
-	}
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
 	tmpl, err := template.ParseFiles("templates/home.html")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -161,19 +147,19 @@ func main() {
 	mux := http.NewServeMux()
 
 	// Static assets
-	mux.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("assets"))))
+	mux.Handle("GET /assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("assets"))))
 
 	// Routes
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
 		serveHome(roomManager, w, r)
 	})
-	mux.HandleFunc("/start", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("POST /start", func(w http.ResponseWriter, r *http.Request) {
 		serveStart(roomManager, w, r)
 	})
-	mux.HandleFunc("/c/{chatRoom}", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /c/{chatRoom}", func(w http.ResponseWriter, r *http.Request) {
 		serveChat(roomManager, w, r)
 	})
-	mux.HandleFunc("/ws/{chatRoom}", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /ws/{chatRoom}", func(w http.ResponseWriter, r *http.Request) {
 		serveWs(roomManager, w, r)
 	})
 	err := http.ListenAndServe("localhost:8000", mux)
