@@ -133,25 +133,25 @@
 <body>
     <div class="container">
         <h1>SupChat</h1>
-        <h2>Number of Rooms: {{ len .Rooms }}</h2>
+        <h2>Number of Chats: {{ len .Rooms }}</h2>
         <h2>Number of Users: {{ len .Usernames }}</h2>
         <hr>
         <h4>Find Group</h4>
         <form id="form">
-            <input type="text" id="group" size="30" autofocus placeholder="Enter room name...">
+            <input type="text" id="group" size="30" autofocus placeholder="Enter chat name...">
             <input type="submit" value="Go">
         </form>
         <table>
             <tr>
-                <td>Room</td>
+                <td>Chat</td>
                 <td>Users</td>
                 <td>...</td>
             </tr>
-            {{ range $roomName, $hub := .Rooms }}
+            {{ range $chatName, $hub := .Rooms }}
                 <tr>
-                <td>{{ $roomName }}</td>
+                <td>{{ $chatName }}</td>
                 <td>{{ len $hub.Clients }}</td>
-                <td><a href="c/{{ $roomName }}">Join Room</td>
+                <td><a href="c/{{ $chatName }}">Join Chat</td>
                 </tr>
             {{ end }}
         </table>
@@ -160,9 +160,9 @@
     <script>
         document.getElementById("form").onsubmit = function (event) {
             event.preventDefault();
-            var roomName = document.getElementById("group").value.trim();
-            if (roomName !== "") {
-                window.location.href = `/c/${roomName}`;
+            var chatName = document.getElementById("group").value.trim();
+            if (chatName !== "") {
+                window.location.href = `/c/${chatName}`;
             }
         };
     </script>
