@@ -4,77 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Added viewport meta tag -->
     <title>SupChat</title>
-    <script>
-        window.onload = function () {
-            var conn;
-            var msg = document.getElementById("msg");
-            var log = document.getElementById("log");
-
-            function appendLog(item) {
-                var doScroll = log.scrollTop > log.scrollHeight - log.clientHeight - 1;
-                log.appendChild(item);
-                if (doScroll) {
-                    log.scrollTop = log.scrollHeight - log.clientHeight;
-                }
-            }
-
-            function stringToColor(str) {
-                let hash = 0;
-                for (let i = 0; i < str.length; i++) {
-                    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-                }
-                const c = (hash & 0x00FFFFFF)
-                    .toString(16)
-                    .toUpperCase();
-                return "#" + "00000".substring(0, 6 - c.length) + c;
-            }
-
-            document.getElementById("form").onsubmit = function () {
-                if (!conn) {
-                    return false;
-                }
-                if (!msg.value) {
-                    return false;
-                }
-                conn.send(msg.value);
-                msg.value = "";
-                return false;
-            };
-
-            if (window["WebSocket"]) {
-                conn = new WebSocket("ws://" + document.location.host + "/ws/" + document.location.pathname.split("/").pop());
-                conn.onclose = function (evt) {
-                    var item = document.createElement("div");
-                    item.innerHTML = "<b>Connection closed.</b>";
-                    appendLog(item);
-                };
-                conn.onmessage = function (evt) {
-                    var messages = evt.data.split('\n');
-                    for (var i = 0; i < messages.length; i++) {
-                        var usernameString = messages[i].match(/^[^:]+/)[0];
-                        var messageString = messages[i].split(/^[^:]+: /).pop();
-                        var usernameItem = document.createElement("div");
-                        var messageItem = document.createElement("div");
-                        usernameItem.style = `color:${stringToColor(usernameString)}`;
-
-                        usernameItem.textContent = `${usernameString}: \u00A0`;
-                        messageItem.textContent = messageString;
-
-                        // Append usernameItem and messageItem together in a single container
-                        var messageContainer = document.createElement("div");
-                        messageContainer.className = "msg_container";
-                        messageContainer.appendChild(usernameItem);
-                        messageContainer.appendChild(messageItem);
-                        appendLog(messageContainer);
-                    }
-                };
-            } else {
-                var item = document.createElement("div");
-                item.innerHTML = "<b>Your browser does not support WebSockets.</b>";
-                appendLog(item);
-            }
-        };
-    </script>
     <style>
         body {
             font-family: 'Courier New', Courier, monospace;
@@ -174,4 +103,75 @@
         <input type="submit" value="Send">
     </form>
 </body>
+<script>
+    window.onload = function () {
+        var conn;
+        var msg = document.getElementById("msg");
+        var log = document.getElementById("log");
+
+        function appendLog(item) {
+            var doScroll = log.scrollTop > log.scrollHeight - log.clientHeight - 1;
+            log.appendChild(item);
+            if (doScroll) {
+                log.scrollTop = log.scrollHeight - log.clientHeight;
+            }
+        }
+
+        function stringToColor(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = str.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            const c = (hash & 0x00FFFFFF)
+                .toString(16)
+                .toUpperCase();
+            return "#" + "00000".substring(0, 6 - c.length) + c;
+        }
+
+        document.getElementById("form").onsubmit = function () {
+            if (!conn) {
+                return false;
+            }
+            if (!msg.value) {
+                return false;
+            }
+            conn.send(msg.value);
+            msg.value = "";
+            return false;
+        };
+
+        if (window["WebSocket"]) {
+            conn = new WebSocket("ws://" + document.location.host + "/ws/" + document.location.pathname.split("/").pop());
+            conn.onclose = function (evt) {
+                var item = document.createElement("div");
+                item.innerHTML = "<b>Connection closed.</b>";
+                appendLog(item);
+            };
+            conn.onmessage = function (evt) {
+                var messages = evt.data.split('\n');
+                for (var i = 0; i < messages.length; i++) {
+                    var usernameString = messages[i].match(/^[^:]+/)[0];
+                    var messageString = messages[i].split(/^[^:]+: /).pop();
+                    var usernameItem = document.createElement("div");
+                    var messageItem = document.createElement("div");
+                    usernameItem.style = `color:${stringToColor(usernameString)}`;
+
+                    usernameItem.textContent = `${usernameString}: \u00A0`;
+                    messageItem.textContent = messageString;
+
+                    // Append usernameItem and messageItem together in a single container
+                    var messageContainer = document.createElement("div");
+                    messageContainer.className = "msg_container";
+                    messageContainer.appendChild(usernameItem);
+                    messageContainer.appendChild(messageItem);
+                    appendLog(messageContainer);
+                }
+            };
+        } else {
+            var item = document.createElement("div");
+            item.innerHTML = "<b>Your browser does not support WebSockets.</b>";
+            appendLog(item);
+        }
+    };
+</script>
 </html>
