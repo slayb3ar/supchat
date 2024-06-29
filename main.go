@@ -5,16 +5,14 @@
 package main
 
 import (
-	"log"
-	"net/http"
-	"html/template"
 	"crypto/rand"
 	"encoding/hex"
+	"html/template"
+	"log"
+	"net/http"
 )
 
-//
 // Generate session token
-//
 func generateSessionToken() string {
 	bytes := make([]byte, 16)
 	if _, err := rand.Read(bytes); err != nil {
@@ -23,9 +21,7 @@ func generateSessionToken() string {
 	return hex.EncodeToString(bytes)
 }
 
-//
 // Get username from session
-//
 func getUsernameFromSession(rm *RoomManager, r *http.Request) string {
 	cookie, err := r.Cookie("session_token")
 	if err != nil {
@@ -43,9 +39,7 @@ func getUsernameFromSession(rm *RoomManager, r *http.Request) string {
 	return username
 }
 
-//
 // Serves start page
-//
 func serveStart(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
 	// Check if POST request
 	if r.Method != http.MethodPost {
@@ -88,15 +82,12 @@ func serveStart(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-
-//
 // Serves home page
-//
 func serveHome(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
-      http.NotFound(w, r)
-      return
-   	}
+		http.NotFound(w, r)
+		return
+	}
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -113,9 +104,7 @@ func serveHome(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-//
 // Serves chat room page
-//
 func serveChat(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
 	username := getUsernameFromSession(rm, r)
 	log.Println("Getting username...", username)
@@ -126,27 +115,25 @@ func serveChat(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "templates/room.html")
 }
 
-//
 // serveWs handles websocket requests from the peer.
-//
 func serveWs(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
 	// get room id and assosicated hub
 	roomID := r.PathValue("chatRoom")
-    if roomID == "" {
-    	err := "Room ID is required"
-     	log.Println(err)
-    	w.Write([]byte(err))
-    }
-    hub := rm.getHub(roomID)
+	if roomID == "" {
+		err := "Room ID is required"
+		log.Println(err)
+		w.Write([]byte(err))
+	}
+	hub := rm.getHub(roomID)
 
-    // Check username
-    username := getUsernameFromSession(rm, r)
+	// Check username
+	username := getUsernameFromSession(rm, r)
 	if username == "" {
 		http.Error(w, "Username is required", http.StatusBadRequest)
 		return
 	}
 
-   	// Upgrade the HTTP connection to a WebSocket connection.
+	// Upgrade the HTTP connection to a WebSocket connection.
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println(err)
@@ -166,7 +153,6 @@ func serveWs(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
 	go client.readPump()
 }
 
-
 func main() {
 	// Setup chat room manager
 	var roomManager = newRoomManager()
@@ -175,16 +161,16 @@ func main() {
 	mux := http.NewServeMux()
 
 	// Static assets
- 	mux.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("assets"))))
+	mux.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("assets"))))
 
-  	// Routes
-  	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	// Routes
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		serveHome(roomManager, w, r)
 	})
-  	mux.HandleFunc("/start", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/start", func(w http.ResponseWriter, r *http.Request) {
 		serveStart(roomManager, w, r)
 	})
-   	mux.HandleFunc("/c/{chatRoom}", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/c/{chatRoom}", func(w http.ResponseWriter, r *http.Request) {
 		serveChat(roomManager, w, r)
 	})
 	mux.HandleFunc("/ws/{chatRoom}", func(w http.ResponseWriter, r *http.Request) {

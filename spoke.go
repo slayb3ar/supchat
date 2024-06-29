@@ -7,8 +7,8 @@ package main
 import (
 	"bytes"
 	"log"
-	"time"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -52,18 +52,18 @@ type Client struct {
 }
 
 type RoomManager struct {
-	Rooms map[string]*Hub
+	Rooms     map[string]*Hub
 	Usernames map[string]string
 	Sessions  map[string]string
-	mu    sync.Mutex
+	mu        sync.Mutex
 }
 
 func newRoomManager() *RoomManager {
-    return &RoomManager{
-        Rooms:     make(map[string]*Hub),
-        Usernames: make(map[string]string),
-        Sessions:  make(map[string]string),
-    }
+	return &RoomManager{
+		Rooms:     make(map[string]*Hub),
+		Usernames: make(map[string]string),
+		Sessions:  make(map[string]string),
+	}
 }
 
 // readPump pumps messages from the websocket connection to the hub.
