@@ -175,7 +175,7 @@ func main() {
 	mux := http.NewServeMux()
 
 	// Static assets
- 	mux.Handle("/design/", http.StripPrefix("/design/", http.FileServer(http.Dir("design"))))
+ 	mux.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("assets"))))
 
   	// Routes
   	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
