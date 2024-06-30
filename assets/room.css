@@ -76,11 +76,19 @@ input[type="submit"]:hover {
 }
 
 .msg_container {
-    display: flex;
     margin-bottom: 5px;
 }
 
 .msg_container > div {
+    padding: 6px 10px;
+    border-radius: 5px;
+}
+
+.system_notice {
+    margin-bottom: 5px;
+}
+
+.system_notice > div {
     padding: 6px 10px;
     border-radius: 5px;
 }

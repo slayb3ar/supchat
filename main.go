@@ -139,11 +139,11 @@ func serveWs(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
 	hub, exists := rm.Rooms[roomID]
 	if !exists {
 		hub = &Hub{
-			broadcast:  make(chan []byte),
+			broadcast:  make(chan Message),
 			register:   make(chan *Client),
 			unregister: make(chan *Client),
 			Clients:    make(map[*Client]bool),
-			history:    make([]string, 0),
+			history:    make([]Message, 0),
 		}
 		rm.Rooms[roomID] = hub
 		go hub.run()
@@ -163,7 +163,7 @@ func serveWs(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
 	client := &Client{
 		hub: hub,
 		conn: conn,
-		send: make(chan []byte, 256),
+		send: make(chan Message, 256),
 		username: username,
 	}
 	client.hub.register <- client

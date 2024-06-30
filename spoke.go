@@ -7,6 +7,7 @@ import (
 	"log"
 	"sync"
 	"time"
+	"encoding/json"
 
 	"github.com/gorilla/websocket"
 )
@@ -44,7 +45,7 @@ type Client struct {
 	conn *websocket.Conn
 
 	// Buffered channel of outbound messages.
-	send chan []byte
+	send chan Message
 
 	username string
 }
@@ -80,12 +81,9 @@ func (c *Client) readPump() {
 			}
 			break
 		}
-		// Clean up the message by trimming spaces and replacing newlines with spaces.
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-		// add the username
-		fullMessage := append([]byte("@"+c.username+": "), message...)
-		// Broadcast the message to the hub.
-		c.hub.broadcast <- fullMessage
+        fullMessage := Message{Type: "message", Content: string(message), User: c.username}
+        c.hub.broadcast <- fullMessage
 	}
 }
 
@@ -95,48 +93,34 @@ func (c *Client) readPump() {
 // ensures that there is at most one writer to a connection by executing all
 // writes from this goroutine.
 func (c *Client) writePump() {
-	ticker := time.NewTicker(pingPeriod)
-	defer func() {
-		// Stop the ticker and close the connection when the function exits.
-		ticker.Stop()
-		c.conn.Close()
-	}()
-	for {
-		select {
-		case message, ok := <-c.send:
-			// Set the write deadline.
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
-			if !ok {
-				// The hub closed the channel.
-				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
-				return
-			}
-
-			// Get the next writer for the connection.
-			w, err := c.conn.NextWriter(websocket.TextMessage)
-			if err != nil {
-				return
-			}
-			// Write the message.
-			w.Write(message)
-
-			// Add any queued messages to the current websocket message.
-			n := len(c.send)
-			for i := 0; i < n; i++ {
-				w.Write(newline)
-				w.Write(<-c.send)
-			}
-
-			// Close the writer.
-			if err := w.Close(); err != nil {
-				return
-			}
-		case <-ticker.C:
-			// Send a ping message to the peer.
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
-			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
-				return
-			}
-		}
-	}
+    ticker := time.NewTicker(pingPeriod)
+    defer func() {
+        ticker.Stop()
+        c.conn.Close()
+    }()
+    for {
+        select {
+        case message, ok := <-c.send:
+            c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+            if !ok {
+                c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+                return
+            }
+            w, err := c.conn.NextWriter(websocket.TextMessage)
+            if err != nil {
+                return
+            }
+            if err := json.NewEncoder(w).Encode(message); err != nil { // Encode the message as JSON
+                return
+            }
+            if err := w.Close(); err != nil {
+                return
+            }
+        case <-ticker.C:
+            c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+            if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+                return
+            }
+        }
+    }
 }
