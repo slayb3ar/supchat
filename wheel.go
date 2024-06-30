@@ -22,17 +22,6 @@ type Hub struct {
 	history []string
 }
 
-// newHub initializes a new Hub.
-func newHub() *Hub {
-	return &Hub{
-		broadcast:  make(chan []byte),
-		register:   make(chan *Client),
-		unregister: make(chan *Client),
-		Clients:    make(map[*Client]bool),
-		history:    make([]string, 0),
-	}
-}
-
 // run starts the main event loop for the Hub, processing register, unregister,
 // and broadcast events.
 func (h *Hub) run() {

@@ -58,14 +58,6 @@ type RoomManager struct {
 	mu        sync.Mutex
 }
 
-func newRoomManager() *RoomManager {
-	return &RoomManager{
-		Rooms:     make(map[string]*Hub),
-		Usernames: make(map[string]string),
-		Sessions:  make(map[string]string),
-	}
-}
-
 // readPump pumps messages from the websocket connection to the hub.
 //
 // The application runs readPump in a per-connection goroutine. The application
@@ -149,16 +141,4 @@ func (c *Client) writePump() {
 			}
 		}
 	}
-}
-
-func (rm *RoomManager) getHub(roomID string) *Hub {
-	rm.mu.Lock()
-	defer rm.mu.Unlock()
-	hub, exists := rm.Rooms[roomID]
-	if !exists {
-		hub = newHub()
-		rm.Rooms[roomID] = hub
-		go hub.run()
-	}
-	return hub
 }

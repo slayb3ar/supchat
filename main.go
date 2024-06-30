@@ -120,20 +120,35 @@ func serveChat(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
 // serveWs handles websocket requests from the peer.
 //
 func serveWs(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
-	// get room id and assosicated hub
+	// Check username
+	username := getUsernameFromSession(rm, r)
+	if username == "" {
+		http.Error(w, "Username is required", http.StatusBadRequest)
+		return
+	}
+
+	// Check room id
 	roomID := r.PathValue("chatRoom")
 	if roomID == "" {
 		err := "Room ID is required"
 		log.Println(err)
 		w.Write([]byte(err))
 	}
-	hub := rm.getHub(roomID)
 
-	// Check username
-	username := getUsernameFromSession(rm, r)
-	if username == "" {
-		http.Error(w, "Username is required", http.StatusBadRequest)
-		return
+	// Get or create hub
+	rm.mu.Lock()
+	defer rm.mu.Unlock()
+	hub, exists := rm.Rooms[roomID]
+	if !exists {
+		hub = &Hub{
+			broadcast:  make(chan []byte),
+			register:   make(chan *Client),
+			unregister: make(chan *Client),
+			Clients:    make(map[*Client]bool),
+			history:    make([]string, 0),
+		}
+		rm.Rooms[roomID] = hub
+		go hub.run()
 	}
 
 	// Upgrade the HTTP connection to a WebSocket connection.
@@ -147,7 +162,12 @@ func serveWs(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
 	rm.Usernames[username] = roomID
 
 	// Create a new client and register it with the hub.
-	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256), username: username}
+	client := &Client{
+		hub: hub,
+		conn: conn,
+		send: make(chan []byte, 256),
+		username: username,
+	}
 	client.hub.register <- client
 
 	// Start the read and write pumps for the client.
@@ -158,7 +178,11 @@ func serveWs(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	// Setup chat room manager
-	var roomManager = newRoomManager()
+	var roomManager = &RoomManager{
+		Rooms: make(map[string]*Hub),
+		Usernames: make(map[string]string),
+		Sessions: make(map[string]string)
+	}
 
 	// Setup MUX
 	mux := http.NewServeMux()
@@ -182,6 +206,8 @@ func main() {
 	mux.HandleFunc("GET /ws/{chatRoom}", func(w http.ResponseWriter, r *http.Request) {
 		serveWs(roomManager, w, r)
 	})
+
+	// Start server
 	err := http.ListenAndServe("localhost:8000", mux)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
