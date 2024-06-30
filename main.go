@@ -106,9 +106,20 @@ func serveStart(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
 // Serves chat room page
 //
 func serveChat(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
+	// Check username
 	username := getUsernameFromSession(rm, r)
 	if username == "" {
-		http.ServeFile(w, r, "templates/start.html")
+		roomID := r.PathValue("chatRoom")
+		tmpl, err := template.ParseFiles("templates/start.html")
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		err = tmpl.Execute(w, roomID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 		return
 	}
 	http.ServeFile(w, r, "templates/room.html")
