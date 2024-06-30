@@ -14,7 +14,7 @@ import (
 // Generate session token
 //
 func generateSessionToken() string {
-	bytes := make([]byte, 16)
+	bytes := make([]byte, 32)
 	if _, err := rand.Read(bytes); err != nil {
 		log.Fatal(err)
 	}
