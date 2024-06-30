@@ -4,6 +4,7 @@ backend
 - [x] 404 / catchall
 - [x] send message for user leaving / joining
 - [x] secure user session
+- [x] send timestamp in message
 - [] search on home table
 - [] comments / documentation / naming
 - [] final styling on all 3 pages

@@ -82,7 +82,12 @@ func (c *Client) readPump() {
 			break
 		}
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-        fullMessage := Message{Type: "message", Content: string(message), User: c.username}
+        fullMessage := Message{
+        	Type: "message",
+         	Content: string(message),
+          	User: c.username,
+           	Timestamp: time.Now().Format("Monday 15:04"),
+        }
         c.hub.broadcast <- fullMessage
 	}
 }

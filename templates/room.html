@@ -57,7 +57,9 @@ window.onload = function () {
         conn.onmessage = function (evt) {
             var message = JSON.parse(evt.data);
             var item = document.createElement("div");
-
+            var timestampItem = document.createElement("span");
+            timestampItem.textContent = `[${message.timestamp}]`
+            timestampItem.className = "timestamp"
             if (message.type === "join" || message.type === "leave") {
                 item.className = "system_notice";
 
@@ -66,7 +68,7 @@ window.onload = function () {
                 usernameItem.style.color = stringToColor(message.user);
                 usernameItem.textContent = `@${message.user} `;
                 messageItem.textContent = message.content;
-
+                item.appendChild(timestampItem)
                 item.appendChild(usernameItem);
                 item.appendChild(messageItem);
             } else if (message.type === "message") {
@@ -78,6 +80,7 @@ window.onload = function () {
 
                 var messageContainer = document.createElement("div");
                 messageContainer.className = "msg_container";
+                messageContainer.appendChild(timestampItem)
                 messageContainer.appendChild(usernameItem);
                 messageContainer.appendChild(messageItem);
                 item = messageContainer;
