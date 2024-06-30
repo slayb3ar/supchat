@@ -1,6 +1,4 @@
-// Copyright 2013 The Gorilla WebSocket Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
+// Main.go
 
 package main
 
@@ -181,7 +179,7 @@ func main() {
 	var roomManager = &RoomManager{
 		Rooms: make(map[string]*Hub),
 		Usernames: make(map[string]string),
-		Sessions: make(map[string]string)
+		Sessions: make(map[string]string),
 	}
 
 	// Setup MUX
