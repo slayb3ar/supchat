@@ -12,34 +12,89 @@
         <h2>Number of Users: {{ len .Usernames }}</h2>
         <hr>
         <h4>Find Group</h4>
-        <form id="form">
-            <input type="text" id="group" size="30" autofocus placeholder="Enter chat name...">
-            <input type="submit" value="Go">
-        </form>
-        <table>
-            <tr>
-                <td>Chat</td>
-                <td>Users</td>
-                <td>...</td>
-            </tr>
-            {{ range $chatName, $hub := .Rooms }}
+        <input
+            type="text"
+            id="group"
+            size="30"
+            autofocus
+            placeholder="Enter chat name..."
+            onkeydown="handleKeyPress(event)">
+        <table id="chatTable">
+            <thead>
                 <tr>
-                <td>{{ $chatName }}</td>
-                <td>{{ len $hub.Clients }}</td>
-                <td><a href="c/{{ $chatName }}">Join Chat</td>
+                    <th>Chat</th>
+                    <th>Users</th>
+                    <th>Action</th>
                 </tr>
-            {{ end }}
+            </thead>
+            <tbody id="chatTableBody">
+                <tr id="createChatRow" style="display: none;">
+                    <td id="createChatName"></td>
+                    <td>0</td>
+                    <td><a id="createChatLink" href="#">Create Chat</a></td>
+                </tr>
+                {{ range $chatName, $hub := .Rooms }}
+                    <tr class="chatRow">
+                        <td>{{ $chatName }}</td>
+                        <td>{{ len $hub.Clients }}</td>
+                        <td><a href="/c/{{ $chatName }}">Join Chat</a></td>
+                    </tr>
+                {{ end }}
+            </tbody>
         </table>
     </div>
 
     <script>
-        document.getElementById("form").onsubmit = function (event) {
-            event.preventDefault();
-            var chatName = document.getElementById("group").value.trim();
-            if (chatName !== "") {
-                window.location.href = `/c/${chatName}`;
+        // Table search
+        document.getElementById("group").addEventListener("input", function() {
+            var input = this.value.trim().toLowerCase();
+            var rows = document.querySelectorAll(".chatRow");
+
+            var createChatRow = document.getElementById("createChatRow");
+            var createChatNameCell = document.getElementById("createChatName");
+            var createChatLink = document.getElementById("createChatLink");
+
+            var exactMatch = false;
+            var partialMatch = false;
+
+            for (var i = 0; i < rows.length; i++) {
+                var chatNameCell = rows[i].getElementsByTagName("td")[0];
+                if (chatNameCell) {
+                    var textValue = chatNameCell.textContent || chatNameCell.innerText;
+                    if (textValue.toLowerCase() === input) {
+                        rows[i].style.display = "";
+                        exactMatch = true;
+                    } else if (textValue.toLowerCase().includes(input)) {
+                        rows[i].style.display = "";
+                        partialMatch = true;
+                    } else {
+                        rows[i].style.display = "none";
+                    }
+                }
             }
-        };
+
+            if (input !== "") {
+                if (!exactMatch) {
+                    createChatRow.style.display = "";
+                    createChatNameCell.textContent = "Create Chat '" + input + "'";
+                    createChatLink.setAttribute("href", "/c/" + input);
+                } else {
+                    createChatRow.style.display = "none";
+                }
+            } else {
+                createChatRow.style.display = "none";
+            }
+        });
+
+        // Input submit
+        function handleKeyPress(event) {
+            if (event.key === "Enter") {
+                var input = document.getElementById("group").value.trim().toLowerCase();
+                if (input !== "") {
+                    window.location.href = "/c/" + input;
+                }
+            }
+        }
     </script>
 </body>
 </html>
