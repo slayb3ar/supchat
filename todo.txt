@@ -12,3 +12,4 @@ backend
     - [] chat log window
     - [] colors
 - [] persistence?? (UNSURE)
+- [] load testing
