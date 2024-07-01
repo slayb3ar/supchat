@@ -6,10 +6,13 @@ backend
 - [x] secure user session
 - [x] send timestamp in message
 - [x] search on home table
-- [] comments / documentation / naming
+- [x] comments
+- [] persistence
+- [] load testing
+- [] better logging
+- [] naming
+- [] README
 - [] final styling on all 3 pages
     - [] header on every page
     - [] chat log window
     - [] colors
-- [] persistence?? (UNSURE)
-- [] load testing
