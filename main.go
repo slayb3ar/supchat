@@ -8,7 +8,16 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"sync"
 )
+
+// RoomManager manages multiple chat rooms and user sessions.
+type RoomManager struct {
+	Rooms     map[string]*Hub   // Maps room IDs to corresponding hubs.
+	Usernames map[string]string // Maps usernames to session tokens.
+	Sessions  map[string]string // Maps session tokens to usernames.
+	mu        sync.Mutex        // Mutex for safe concurrent access to maps.
+}
 
 //
 // Generate session token
@@ -25,14 +34,15 @@ func generateSessionToken() string {
 // Get username from session
 //
 func getUsernameFromSession(rm *RoomManager, r *http.Request) string {
+	// Check for session cookie
 	cookie, err := r.Cookie("session_token")
 	if err != nil {
 		return ""
 	}
 
+	// Check for session via room manager
 	rm.mu.Lock()
 	defer rm.mu.Unlock()
-
 	username, exists := rm.Sessions[cookie.Value]
 	if !exists {
 		return ""
@@ -42,7 +52,7 @@ func getUsernameFromSession(rm *RoomManager, r *http.Request) string {
 }
 
 //
-// Serves chat room page
+// Serves 404 page
 //
 func serve404(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "templates/404.html")
@@ -52,7 +62,7 @@ func serve404(w http.ResponseWriter, r *http.Request) {
 //
 // Serves home page
 //
-func serveHome(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
+func serveHome(rm *RoomManager, w http.ResponseWriter) {
 	tmpl, err := template.ParseFiles("templates/home.html")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -69,27 +79,26 @@ func serveHome(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
 // Serves start page
 //
 func serveStart(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
+	// Parse and check for username
 	r.ParseForm()
 	username := r.FormValue("username")
-
 	if username == "" {
 		http.Error(w, "Username is required", http.StatusBadRequest)
 		return
 	}
 
+	// Check username exists via room manager
 	rm.mu.Lock()
 	defer rm.mu.Unlock()
-
 	if _, exists := rm.Usernames[username]; exists {
 		http.Error(w, "Username is already taken", http.StatusConflict)
 		return
 	}
 
-	// Register the username
+	// Register the username / session, set via cookie
 	sessionToken := generateSessionToken()
 	rm.Usernames[username] = sessionToken
 	rm.Sessions[sessionToken] = username
-
 	http.SetCookie(w, &http.Cookie{
 		Name:  "session_token",
 		Value: sessionToken,
@@ -97,6 +106,7 @@ func serveStart(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
 		// Secure: true, // Uncomment this in production
 		HttpOnly: true,
 	})
+
 
 	http.Redirect(w, r, r.Header.Get("Referer"), 302)
 	return
@@ -132,7 +142,8 @@ func serveWs(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
 	// Check username
 	username := getUsernameFromSession(rm, r)
 	if username == "" {
-		http.Error(w, "Username is required", http.StatusBadRequest)
+		err := "Username is required"
+		http.Error(w, err, http.StatusBadRequest)
 		return
 	}
 
@@ -140,8 +151,8 @@ func serveWs(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
 	roomID := r.PathValue("chatRoom")
 	if roomID == "" {
 		err := "Room ID is required"
-		log.Println(err)
-		w.Write([]byte(err))
+		http.Error(w, err, http.StatusBadRequest)
+		return
 	}
 
 	// Get or create hub
@@ -204,7 +215,7 @@ func main() {
 		serve404(w, r)
 	})
 	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
-		serveHome(roomManager, w, r)
+		serveHome(roomManager, w)
 	})
 	mux.HandleFunc("POST /start", func(w http.ResponseWriter, r *http.Request) {
 		serveStart(roomManager, w, r)

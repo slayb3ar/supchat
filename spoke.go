@@ -4,14 +4,14 @@ package main
 
 import (
 	"bytes"
-	"log"
-	"sync"
-	"time"
 	"encoding/json"
+	"log"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
 
+// Constants for WebSocket connection parameters.
 const (
 	// Time allowed to write a message to the peer.
 	writeWait = 10 * time.Second
@@ -24,12 +24,14 @@ const (
 
 	// Maximum message size allowed from peer.
 	maxMessageSize = 512
+
+	// Predefined newline for message processing
+	newline = '\n'
+
+	// Predefined space for message processing
+	space = ' '
 )
 
-var (
-	newline = []byte{'\n'}
-	space   = []byte{' '}
-)
 
 // upgrader is used to upgrade HTTP connections to WebSocket connections.
 var upgrader = websocket.Upgrader{
@@ -37,7 +39,7 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
-// Client is a middleman between the websocket connection and the hub.
+// Client represents a WebSocket client connected to the hub.
 type Client struct {
 	hub *Hub
 
@@ -47,81 +49,103 @@ type Client struct {
 	// Buffered channel of outbound messages.
 	send chan Message
 
+	// Username associated with the client.
 	username string
-}
-
-type RoomManager struct {
-	Rooms     map[string]*Hub
-	Usernames map[string]string
-	Sessions  map[string]string
-	mu        sync.Mutex
 }
 
 // readPump pumps messages from the websocket connection to the hub.
 //
-// The application runs readPump in a per-connection goroutine. The application
-// ensures that there is at most one reader on a connection by executing all
-// reads from this goroutine.
+// readPump runs in a per-connection goroutine. It reads messages from the
+// websocket connection, processes them, and broadcasts them to all clients in
+// the associated hub. The application ensures that there is at most one reader
+// on a connection by executing all reads from this goroutine.
 func (c *Client) readPump() {
-	defer func() {
-		// Unregister the client and close the connection when the function exits.
-		c.hub.unregister <- c
-		c.conn.Close()
-	}()
-	// Set the maximum message size and read deadline.
-	c.conn.SetReadLimit(maxMessageSize)
-	c.conn.SetReadDeadline(time.Now().Add(pongWait))
-	// Set the handler for pong messages.
-	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
-	for {
-		_, message, err := c.conn.ReadMessage()
-		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("error: %v", err)
-			}
-			break
-		}
-		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-        fullMessage := Message{
-        	Type: "message",
-         	Content: string(message),
-          	User: c.username,
-           	Timestamp: time.Now().Format("Monday 15:04"),
+    defer func() {
+        // Unregister the client and close the connection when the function exits.
+        c.hub.unregister <- c
+        c.conn.Close()
+    }()
+
+    // Set maximum message size and read deadline.
+    c.conn.SetReadLimit(maxMessageSize)
+    c.conn.SetReadDeadline(time.Now().Add(pongWait))
+
+    // Set pong handler to update the read deadline.
+    c.conn.SetPongHandler(func(string) error {
+        c.conn.SetReadDeadline(time.Now().Add(pongWait))
+        return nil
+    })
+
+    for {
+        // Read a message from the websocket connection.
+        _, message, err := c.conn.ReadMessage()
+        if err != nil {
+            // Handle unexpected close errors.
+            if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+                log.Printf("error: %v", err)
+            }
+            break
         }
+
+        // Trim leading and trailing whitespace and replace newlines with spaces.
+        message = bytes.TrimSpace(bytes.Replace(message, []byte{newline}, []byte{space}, -1))
+
+        // Prepare the full message to broadcast.
+        fullMessage := Message{
+            Type:      "message",
+            Content:   string(message),
+            User:      c.username,
+            Timestamp: time.Now().Format("Monday 15:04"),
+        }
+
+        // Broadcast the message to all clients in the hub.
         c.hub.broadcast <- fullMessage
-	}
+    }
 }
 
 // writePump pumps messages from the hub to the websocket connection.
 //
-// A goroutine running writePump is started for each connection. The application
-// ensures that there is at most one writer to a connection by executing all
-// writes from this goroutine.
+// writePump runs in a per-connection goroutine. It sends messages from the hub
+// to the websocket connection. It also handles periodic ping messages to
+// maintain connection health. The application ensures that there is at most one
+// writer to a connection by executing all writes from this goroutine.
 func (c *Client) writePump() {
+    // Create a ticker for periodic pings to the client.
     ticker := time.NewTicker(pingPeriod)
     defer func() {
         ticker.Stop()
         c.conn.Close()
     }()
+
     for {
         select {
         case message, ok := <-c.send:
+            // Set write deadline for the message.
             c.conn.SetWriteDeadline(time.Now().Add(writeWait))
             if !ok {
+                // Hub closed the channel.
                 c.conn.WriteMessage(websocket.CloseMessage, []byte{})
                 return
             }
+
+            // Get a writer to send a WebSocket text message.
             w, err := c.conn.NextWriter(websocket.TextMessage)
             if err != nil {
                 return
             }
-            if err := json.NewEncoder(w).Encode(message); err != nil { // Encode the message as JSON
+
+            // Encode the message as JSON and write it to the connection.
+            if err := json.NewEncoder(w).Encode(message); err != nil {
                 return
             }
+
+            // Close the writer.
             if err := w.Close(); err != nil {
                 return
             }
+
         case <-ticker.C:
+            // Send a ping to the client to maintain connection.
             c.conn.SetWriteDeadline(time.Now().Add(writeWait))
             if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
                 return

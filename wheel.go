@@ -1,34 +1,26 @@
 // Wheel.go
+
 package main
 
 import (
 	"time"
 )
 
-// Defines type of message
+// Message defines the structure of messages exchanged between clients.
 type Message struct {
-    Type    string `json:"type"`    // "message", "join", "leave"
-    Content string `json:"content"`
-    User    string `json:"user,omitempty"`
-	Timestamp string `json:"timestamp"`
+	Type      string `json:"type"`      // Type of message: "message", "join", "leave"
+	Content   string `json:"content"`   // Content of the message
+	User      string `json:"user,omitempty"` // Username of the sender (optional)
+	Timestamp string `json:"timestamp"` // Timestamp of the message
 }
 
-// Hub maintains the set of active Clients and broadcasts messages to the Clients.
+// Hub maintains the set of active Clients and handles message broadcasting.
 type Hub struct {
-	// Registered Clients.
-	Clients map[*Client]bool
-
-	// Inbound messages from the Clients.
-	broadcast chan Message
-
-	// Register requests from the Clients.
-	register chan *Client
-
-	// Unregister requests from Clients.
-	unregister chan *Client
-
-	// Chat history
-	history []Message
+	Clients    map[*Client]bool   // Registered Clients
+	broadcast  chan Message      // Inbound messages from the Clients
+	register   chan *Client      // Register requests from the Clients
+	unregister chan *Client      // Unregister requests from Clients
+	history    []Message         // Chat history
 }
 
 // run starts the main event loop for the Hub, processing register, unregister,
@@ -40,16 +32,16 @@ func (h *Hub) run() {
 			// Register a new client.
 			h.Clients[client] = true
 
-			// Send history to new client
+			// Send chat history to the new client.
 			for _, msg := range h.history {
 				client.send <- msg
 			}
 
-			// Broadcast join message via goroutine
+			// Broadcast join message to all clients asynchronously.
 			joinMessage := Message{
-				Type: "join",
-				Content: "has joined the chat",
-				User: client.username,
+				Type:      "join",
+				Content:   "has joined the chat",
+				User:      client.username,
 				Timestamp: time.Now().Format("Monday 3:04PM"),
 			}
 			go func() { h.broadcast <- joinMessage }()
@@ -61,13 +53,13 @@ func (h *Hub) run() {
 				close(client.send)
 			}
 
-			// Broadcast leave message via goroutine
-   			leaveMessage := Message{
-      			Type: "leave",
-         		Content: "has left the chat",
-           		User: client.username,
-             	Timestamp: time.Now().Format("Monday 3:04PM"),
-      		}
+			// Broadcast leave message to all clients asynchronously.
+			leaveMessage := Message{
+				Type:      "leave",
+				Content:   "has left the chat",
+				User:      client.username,
+				Timestamp: time.Now().Format("Monday 3:04PM"),
+			}
 			go func() { h.broadcast <- leaveMessage }()
 
 		case message := <-h.broadcast:
