@@ -36,7 +36,7 @@
                 {{ range $chatName, $hub := .Rooms }}
                     <tr class="chatRow">
                         <td>{{ $chatName }}</td>
-                        <td>{{ len $hub.Clients }}</td>
+                        <td>{{ $hub.UniqueUser }}</td>
                         <td><a href="/c/{{ $chatName }}">Join Chat</a></td>
                     </tr>
                 {{ end }}

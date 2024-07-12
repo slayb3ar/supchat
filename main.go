@@ -37,6 +37,17 @@ func generateSessionToken() string {
 }
 
 //
+// Get unique user count form hub
+//
+func (h *Hub) UniqueUser() int {
+    uniqueUsers := make(map[string]bool)
+    for client := range h.Clients {
+        uniqueUsers[client.user.Username] = true
+    }
+    return len(uniqueUsers)
+}
+
+//
 // Get username from session
 //
 func getUserFromSession(rm *RoomManager, r *http.Request) *User {

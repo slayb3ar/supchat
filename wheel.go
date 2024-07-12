@@ -6,7 +6,9 @@ import (
 	"time"
 )
 
+//
 // Message defines the structure of messages exchanged between clients.
+//
 type Message struct {
 	Type      string `json:"type"`      // Type of message: "message", "join", "leave"
 	Content   string `json:"content"`   // Content of the message
@@ -14,7 +16,9 @@ type Message struct {
 	Timestamp string `json:"timestamp"` // Timestamp of the message
 }
 
+//
 // Hub maintains the set of active Clients and handles message broadcasting.
+//
 type Hub struct {
 	Clients    map[*Client]bool   // Registered Clients
 	broadcast  chan Message      // Inbound messages from the Clients
@@ -23,8 +27,21 @@ type Hub struct {
 	history    []Message         // Chat history
 }
 
-// run starts the main event loop for the Hub, processing register, unregister,
-// and broadcast events.
+//
+// Get unique user count form hub
+//
+func (h *Hub) UniqueUser() int {
+    uniqueUsers := make(map[string]bool)
+    for client := range h.Clients {
+        uniqueUsers[client.user.Username] = true
+    }
+    return len(uniqueUsers)
+}
+
+//
+// run starts the main event loop for the Hub,
+// processing register, unregister,and broadcast events.
+//
 func (h *Hub) run() {
 	for {
 		select {
