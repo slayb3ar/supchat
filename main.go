@@ -9,11 +9,12 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type User struct {
 	Username string
-	Password string
+	HashedPassword string
 	SessionToken string
 }
 
@@ -37,17 +38,6 @@ func generateSessionToken() string {
 }
 
 //
-// Get unique user count form hub
-//
-func (h *Hub) UniqueUser() int {
-    uniqueUsers := make(map[string]bool)
-    for client := range h.Clients {
-        uniqueUsers[client.user.Username] = true
-    }
-    return len(uniqueUsers)
-}
-
-//
 // Get username from session
 //
 func getUserFromSession(rm *RoomManager, r *http.Request) *User {
@@ -66,6 +56,25 @@ func getUserFromSession(rm *RoomManager, r *http.Request) *User {
 	}
 
 	return user
+}
+
+//
+// Hash Password
+//
+func hashPassword(password string) (string, error) {
+	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	return string(hashedBytes), nil
+}
+
+//
+// Verify Password
+//
+func verifyPassword(hashedPassword, password string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
+	return err == nil
 }
 
 //
@@ -113,7 +122,7 @@ func serveStart(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
 	// Check if username exists
 	if user, exists := rm.Usernames[username]; exists {
 		// Username exists, check password
-		if user.Password != password {
+		if !verifyPassword(user.HashedPassword, password) {
 			http.Error(w, "Incorrect password", http.StatusUnauthorized)
 			return
 		}
@@ -132,8 +141,17 @@ func serveStart(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
 		})
 	} else {
 		// Username doesn't exist, sign up the user
+		hashedPassword, err := hashPassword(password)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 		sessionToken := generateSessionToken()
-		user := &User{Username: username, Password: password, SessionToken: sessionToken}
+		user := &User{
+			Username: username,
+			HashedPassword: hashedPassword,
+			SessionToken: sessionToken,
+		}
 		rm.Usernames[username] = user
 		rm.Sessions[sessionToken] = user
 
