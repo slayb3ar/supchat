@@ -49,8 +49,8 @@ type Client struct {
 	// Buffered channel of outbound messages.
 	send chan Message
 
-	// Username associated with the client.
-	username string
+	// User associated with the client.
+	user *User
 }
 
 // readPump pumps messages from the websocket connection to the hub.
@@ -94,7 +94,7 @@ func (c *Client) readPump() {
         fullMessage := Message{
             Type:      "message",
             Content:   string(message),
-            User:      c.username,
+            User:      c.user.Username,
             Timestamp: time.Now().Format("Monday 15:04"),
         }
 

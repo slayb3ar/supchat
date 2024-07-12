@@ -30,7 +30,7 @@ h1 {
     color: #cccccc;
 }
 
-input[type="text"], input[type="submit"] {
+input {
     padding: 10px;
     font-size: 1em;
     width: calc(100% - 20px);
