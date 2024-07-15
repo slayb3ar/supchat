@@ -7,12 +7,12 @@ backend
 - [x] send timestamp in message
 - [x] search on home table
 - [x] comments
-- [] persistence
-- [] load testing
-- [] better logging
 - [] naming
-- [] README
+- [] persistence
+- [] better logging
 - [] final styling on all 3 pages
     - [] header on every page
     - [] chat log window
     - [] colors
+- [] load testing
+- [] README
