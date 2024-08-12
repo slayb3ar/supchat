@@ -9,10 +9,15 @@ backend
 - [x] comments
 - [x] naming
 - [x] persistence
-- [] better logging
+- [] footguns
+    - [] golang channels
+    - [] websocket connections
+    - []
 - [] final styling on all 3 pages
     - [] header on every page
     - [] chat log window
     - [] colors
+    - [] text formatting (preserve new lines)
+- [] better logging
 - [] load testing
 - [] README
