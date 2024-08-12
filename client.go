@@ -95,7 +95,7 @@ func (c *Client) readPump() {
             Type:      "message",
             Content:   string(message),
             User:      c.user.Username,
-            Timestamp: time.Now().Format("Monday 15:04"),
+            Timestamp: time.Now().Format("Monday 3:04PM"),
         }
 
         // Broadcast the message to all clients in the hub.
