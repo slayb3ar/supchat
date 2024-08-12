@@ -7,7 +7,7 @@ backend
 - [x] send timestamp in message
 - [x] search on home table
 - [x] comments
-- [] naming
+- [x] naming
 - [] persistence
 - [] better logging
 - [] final styling on all 3 pages
