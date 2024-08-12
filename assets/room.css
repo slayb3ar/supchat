@@ -33,6 +33,8 @@ header a:hover {
     padding: 10px;
     flex: 1; /* Use flex to fill remaining space */
     overflow: auto;
+    max-height: 65vh;
+    word-wrap: break-word;
 }
 
 #form {
