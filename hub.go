@@ -4,6 +4,7 @@ package main
 
 import (
 	"time"
+	"log"
 )
 
 //
@@ -20,11 +21,13 @@ type Message struct {
 // Hub maintains the set of active Clients and handles message broadcasting.
 //
 type Hub struct {
-	Clients    map[*Client]bool   // Registered Clients
+	Clients    map[*Client]bool  // Registered Clients
 	broadcast  chan Message      // Inbound messages from the Clients
 	register   chan *Client      // Register requests from the Clients
 	unregister chan *Client      // Unregister requests from Clients
 	history    []Message         // Chat history
+	roomID     string			 // Room ID
+	db         *DB				 // Pointer to database
 }
 
 //
@@ -46,13 +49,19 @@ func (h *Hub) run() {
 	for {
 		select {
 		case client := <-h.register:
-			// Register a new client.
 			h.Clients[client] = true
 
-			// Send chat history to the new client.
-			for _, msg := range h.history {
+			// Send chat history to the new client
+			messages, err := h.db.GetRoomMessages(h.roomID)
+			if err != nil {
+				log.Printf("Error fetching chat history: %v", err)
+				continue
+			}
+
+			for _, msg := range messages {
 				client.send <- msg
 			}
+
 
 			// Check if this is the first connection for this user
 			// Broadcast join message if so
@@ -72,8 +81,6 @@ func (h *Hub) run() {
 				}
 				go func() { h.broadcast <- joinMessage }()
             }
-
-
 
 		case client := <-h.unregister:
 			// Unregister an existing client.
@@ -102,8 +109,11 @@ func (h *Hub) run() {
 			}
 
 		case message := <-h.broadcast:
-			// Broadcast a message to all registered Clients.
-			h.history = append(h.history, message)
+			// Store message in the database
+			err := h.db.StoreMessage(h.roomID, message.User, message.Content, message.Timestamp)
+			if err != nil {
+				log.Printf("Error storing message: %v", err)
+			}
 			for client := range h.Clients {
 				select {
 				case client.send <- message:

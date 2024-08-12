@@ -9,7 +9,7 @@
     <div class="container">
         <h1>SupChat</h1>
         <h2>Number of Chats: {{ len .Rooms }}</h2>
-        <h2>Number of Users: {{ len .Usernames }}</h2>
+        <h2>Number of Users: {{ .UserCount }}</h2>
         <hr>
         <h4>Find Group</h4>
         <input
@@ -33,11 +33,11 @@
                     <td>0</td>
                     <td><a id="createChatLink" href="#">Create Chat</a></td>
                 </tr>
-                {{ range $chatName, $hub := .Rooms }}
+                {{ range $roomID, $userCount := .Rooms }}
                     <tr class="chatRow">
-                        <td>{{ $chatName }}</td>
-                        <td>{{ $hub.UniqueUser }}</td>
-                        <td><a href="/c/{{ $chatName }}">Join Chat</a></td>
+                        <td>{{ $roomID }}</td>
+                        <td>{{ $userCount }}</td>
+                        <td><a href="/c/{{ $roomID }}">Join Chat</a></td>
                     </tr>
                 {{ end }}
             </tbody>

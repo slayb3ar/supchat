@@ -3,13 +3,11 @@
 package main
 
 import (
-	"crypto/rand"
-	"encoding/hex"
+
 	"html/template"
 	"log"
 	"net/http"
 	"sync"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type User struct {
@@ -24,57 +22,7 @@ type RoomManager struct {
 	Usernames map[string]*User 	// Maps usernames to users.
 	Sessions  map[string]*User 	// Maps session tokens to usernames.
 	mu        sync.Mutex        // Mutex for safe concurrent access to maps.
-}
-
-//
-// Generate session token
-//
-func generateSessionToken() string {
-	bytes := make([]byte, 32)
-	if _, err := rand.Read(bytes); err != nil {
-		log.Fatal(err)
-	}
-	return hex.EncodeToString(bytes)
-}
-
-//
-// Get username from session
-//
-func getUserFromSession(rm *RoomManager, r *http.Request) *User {
-	// Check for session cookie
-	cookie, err := r.Cookie("SessionToken")
-	if err != nil {
-		return nil
-	}
-
-	// Check for session via room manager
-	rm.mu.Lock()
-	defer rm.mu.Unlock()
-	user, exists := rm.Sessions[cookie.Value]
-	if !exists {
-		return nil
-	}
-
-	return user
-}
-
-//
-// Hash Password
-//
-func hashPassword(password string) (string, error) {
-	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return "", err
-	}
-	return string(hashedBytes), nil
-}
-
-//
-// Verify Password
-//
-func verifyPassword(hashedPassword, password string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
-	return err == nil
+	db        *DB 				// Pointer to database
 }
 
 //
@@ -89,16 +37,38 @@ func serve404(w http.ResponseWriter, r *http.Request) {
 // Serves home page
 //
 func serveHome(rm *RoomManager, w http.ResponseWriter) {
-	tmpl, err := template.ParseFiles("templates/home.html")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	err = tmpl.Execute(w, rm)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+    type TemplateData struct {
+        Rooms     map[string]int
+        UserCount int
+    }
+
+    rooms, err := rm.db.GetRooms()
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    userCount, err := rm.db.GetUserCount()
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    data := TemplateData{
+        Rooms:     rooms,
+        UserCount: userCount,
+    }
+
+    tmpl, err := template.ParseFiles("templates/home.html")
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+    err = tmpl.Execute(w, data)
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
 }
 
 func serveStart(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
@@ -115,59 +85,56 @@ func serveStart(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Lock the room manager to check and update user data
 	rm.mu.Lock()
 	defer rm.mu.Unlock()
 
-	// Check if username exists
-	if user, exists := rm.Usernames[username]; exists {
-		// Username exists, check password
-		if !verifyPassword(user.HashedPassword, password) {
-			http.Error(w, "Incorrect password", http.StatusUnauthorized)
-			return
-		}
-		// Password correct, log in user
-		sessionToken := generateSessionToken()
-		user.SessionToken = sessionToken
-		rm.Sessions[sessionToken] = user
+	user, err := rm.db.GetUser(username)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-		// Set session via cookie
-		http.SetCookie(w, &http.Cookie{
-			Name:     "SessionToken",
-			Value:    sessionToken,
-			Path:     "/",
-			// Secure: true, // Uncomment this in production
-			HttpOnly: true,
-		})
-	} else {
-		// Username doesn't exist, sign up the user
+	if user == nil {
+		// User doesn't exist, create new user
 		hashedPassword, err := hashPassword(password)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		sessionToken := generateSessionToken()
-		user := &User{
-			Username: username,
-			HashedPassword: hashedPassword,
-			SessionToken: sessionToken,
+		err = rm.db.CreateUser(username, hashedPassword)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
-		rm.Usernames[username] = user
-		rm.Sessions[sessionToken] = user
-
-		// Set session via cookie
-		http.SetCookie(w, &http.Cookie{
-			Name:     "SessionToken",
-			Value:    sessionToken,
-			Path:     "/",
-			// Secure: true, // Uncomment this in production
-			HttpOnly: true,
-		})
+		user = &User{Username: username, HashedPassword: hashedPassword}
+	} else {
+		// User exists, verify password
+		if !verifyPassword(user.HashedPassword, password) {
+			http.Error(w, "Incorrect password", http.StatusUnauthorized)
+			return
+		}
 	}
 
-	// Redirect to the referer or a default page
+	// Create session
+	sessionToken := generateSessionToken()
+	err = rm.db.CreateSession(sessionToken, username)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	user.SessionToken = sessionToken
+	rm.Sessions[sessionToken] = user
+
+	// Set session cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:     "SessionToken",
+		Value:    sessionToken,
+		Path:     "/",
+		HttpOnly: true,
+	})
+
 	http.Redirect(w, r, r.Header.Get("Referer"), http.StatusFound)
-	return
 }
 
 //
@@ -215,19 +182,27 @@ func serveWs(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
 
 	// Get or create hub
 	rm.mu.Lock()
-	defer rm.mu.Unlock()
 	hub, exists := rm.Rooms[roomID]
 	if !exists {
+		err := rm.db.CreateRoom(roomID)
+		if err != nil {
+			log.Printf("Error creating room: %v", err)
+			rm.mu.Unlock()
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
 		hub = &Hub{
 			broadcast:  make(chan Message),
 			register:   make(chan *Client),
 			unregister: make(chan *Client),
 			Clients:    make(map[*Client]bool),
-			history:    make([]Message, 0),
+			roomID:     roomID,
+			db:         rm.db,
 		}
 		rm.Rooms[roomID] = hub
 		go hub.run()
 	}
+	rm.mu.Unlock()
 
 	// Upgrade the HTTP connection to a WebSocket connection.
 	conn, err := upgrader.Upgrade(w, r, nil)
@@ -252,12 +227,23 @@ func serveWs(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	// Setup chat room manager
-	var roomManager = &RoomManager{
-		Rooms: make(map[string]*Hub),
-		Usernames: make(map[string]*User),
-		Sessions: make(map[string]*User),
+	// Init database and create tables
+	db, err := InitDB("chat.db")
+	if err != nil {
+		log.Fatal("Database initialization failed: ", err)
 	}
+	defer db.Close()
+	err = db.CreateTables()
+	if err != nil {
+		log.Fatal("Table creation failed: ", err)
+	}
+	var roomManager = &RoomManager{
+		Rooms:     make(map[string]*Hub),
+		Usernames: make(map[string]*User),
+		Sessions:  make(map[string]*User),
+		db:        db,
+	}
+
 
 	// Setup MUX
 	mux := http.NewServeMux()
@@ -283,7 +269,7 @@ func main() {
 	})
 
 	// Start server
-	err := http.ListenAndServe("localhost:8000", mux)
+	err = http.ListenAndServe("localhost:8000", mux)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
