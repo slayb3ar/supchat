@@ -1,4 +1,4 @@
-module ganchat
+module supchat
 
 go 1.22.3
 
