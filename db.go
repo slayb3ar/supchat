@@ -10,6 +10,8 @@ import (
 	"encoding/hex"
 	"log"
 	"net/http"
+	"net/url"
+	"runtime"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -18,8 +20,26 @@ type DB struct {
 	*sql.DB
 }
 
-func InitDB(dbPath string) (*DB, error) {
-	db, err := sql.Open("sqlite3", dbPath)
+func SQLiteDbString(file string, readonly bool) string {
+	connectionParams := make(url.Values)
+	connectionParams.Add("_journal_mode", "WAL")
+	connectionParams.Add("_busy_timeout", "5000")
+	connectionParams.Add("_synchronous", "NORMAL")
+	connectionParams.Add("_cache_size", "-20000")
+	connectionParams.Add("_foreign_keys", "true")
+	if readonly {
+		connectionParams.Add("mode", "ro")
+	} else {
+		connectionParams.Add("_txlock", "IMMEDIATE")
+		connectionParams.Add("mode", "rwc")
+	}
+	return "file:" + file + "?" + connectionParams.Encode()
+}
+
+func InitDB(file string, readonly bool) (*DB, error) {
+	dbString := SQLiteDbString(file, readonly)
+	db, err := sql.Open("sqlite3", dbString)
+
 	if err != nil {
 		return nil, fmt.Errorf("error opening database: %w", err)
 	}
@@ -28,7 +48,24 @@ func InitDB(dbPath string) (*DB, error) {
 		return nil, fmt.Errorf("error connecting to database: %w", err)
 	}
 
+	pragmasToSet := []string{
+		"temp_store=memory",
+	}
+
+	for _, pragma := range pragmasToSet {
+		_, err = db.Exec("PRAGMA " + pragma + ";")
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if readonly {
+		db.SetMaxOpenConns(max(4, runtime.NumCPU()))
+	} else {
+		db.SetMaxOpenConns(1)
+	}
 	return &DB{db}, nil
+
 }
 
 func (db *DB) CreateTables() error {

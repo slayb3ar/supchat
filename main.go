@@ -228,7 +228,7 @@ func serveWs(rm *RoomManager, w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	// Init database and create tables
-	db, err := InitDB("chat.db")
+	db, err := InitDB("chat.db", false)
 	if err != nil {
 		log.Fatal("Database initialization failed: ", err)
 	}

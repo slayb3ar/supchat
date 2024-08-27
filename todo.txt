@@ -9,6 +9,7 @@ backend
 - [x] comments
 - [x] naming
 - [x] persistence
+- [x] load testing
 - [] footguns
     - [] golang channels
     - [] websocket connections
@@ -19,5 +20,4 @@ backend
     - [] colors
     - [] text formatting (preserve new lines)
 - [] better logging
-- [] load testing
 - [] README
