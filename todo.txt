@@ -10,14 +10,14 @@ backend
 - [x] naming
 - [x] persistence
 - [x] load testing
+- [x] final styling on all 3 pages
+    - [x] header on every page
+    - [x] chat log window
+    - [x] text formatting (preserve new lines)
+    - [x] colors
 - [] footguns
     - [] golang channels
     - [] websocket connections
     - []
-- [x] final styling on all 3 pages
-    - [x] header on every page
-    - [x] chat log window
-    - [] colors
-    - [] text formatting (preserve new lines)
 - [] better logging
 - [] README

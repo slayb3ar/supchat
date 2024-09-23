@@ -72,7 +72,7 @@ window.onload = function () {
                 var messageItem = document.createElement("span");
                 usernameItem.style.color = stringToColor(message.user);
                 usernameItem.textContent = `@${message.user} `;
-                messageItem.textContent = message.content;
+                messageItem.innerHTML = message.content.replace(/\n/g, "<br>"); // handle new lines
                 item.appendChild(timestampItem)
                 item.appendChild(usernameItem);
                 item.appendChild(messageItem);
@@ -81,7 +81,7 @@ window.onload = function () {
                 var messageItem = document.createElement("span");
                 usernameItem.style.color = stringToColor(message.user);
                 usernameItem.textContent = `@${message.user}: `;
-                messageItem.textContent = message.content;
+                messageItem.innerHTML = message.content.replace(/\n/g, "<br>"); // handle new lines
 
                 var messageContainer = document.createElement("div");
                 messageContainer.className = "msg_container";

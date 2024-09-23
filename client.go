@@ -3,7 +3,6 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"log"
 	"time"
@@ -24,12 +23,6 @@ const (
 
 	// Maximum message size allowed from peer.
 	maxMessageSize = 512
-
-	// Predefined newline for message processing
-	newline = '\n'
-
-	// Predefined space for message processing
-	space = ' '
 )
 
 
@@ -86,9 +79,6 @@ func (c *Client) readPump() {
             }
             break
         }
-
-        // Trim leading and trailing whitespace and replace newlines with spaces.
-        message = bytes.TrimSpace(bytes.Replace(message, []byte{newline}, []byte{space}, -1))
 
         // Prepare the full message to broadcast.
         fullMessage := Message{
