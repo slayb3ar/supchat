@@ -11,9 +11,11 @@
         <a href="/">SupChat 🏠</a> <!-- Added a link to the home page -->
     </header>
     <div class="container">
-        <h1>SupChat</h1>
-        <h2>Number of Chats: {{ len .Rooms }}</h2>
-        <h2>Number of Users: {{ .UserCount }}</h2>
+        <h1 style="margin:0">SupChat</h1>
+        <h2>Text-only group chats</h2>
+        <br>
+        <p>Number of Chats: {{ len .Rooms }}</p>
+        <p>Number of Users: {{ .UserCount }}</p>
         <hr>
         <h4>Find Group</h4>
         <input
