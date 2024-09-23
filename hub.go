@@ -31,17 +31,6 @@ type Hub struct {
 }
 
 //
-// Get unique user count form hub
-//
-func (h *Hub) UniqueUser() int {
-    uniqueUsers := make(map[string]bool)
-    for client := range h.Clients {
-        uniqueUsers[client.user.Username] = true
-    }
-    return len(uniqueUsers)
-}
-
-//
 // run starts the main event loop for the Hub,
 // processing register, unregister,and broadcast events.
 //
