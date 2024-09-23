@@ -3,7 +3,7 @@
 package main
 
 import (
-
+ 	"flag"
 	"html/template"
 	"log"
 	"net/http"
@@ -269,7 +269,9 @@ func main() {
 	})
 
 	// Start server
-	err = http.ListenAndServe("localhost:8000", mux)
+    port := flag.String("port", "8000", "specify the port to listen on")
+    flag.Parse()
+    err = http.ListenAndServe(":" + *port, mux)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
