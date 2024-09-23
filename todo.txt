@@ -14,8 +14,8 @@ backend
     - [] golang channels
     - [] websocket connections
     - []
-- [] final styling on all 3 pages
-    - [] header on every page
+- [x] final styling on all 3 pages
+    - [x] header on every page
     - [] chat log window
     - [] colors
     - [] text formatting (preserve new lines)
