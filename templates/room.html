@@ -25,12 +25,6 @@ window.onload = function () {
     var conn;
     var msg = document.getElementById("msg");
     var log = document.getElementById("log");
-    var newMessageCount = 0; // Track the number of new messages
-
-    // Request notification permission
-    if (Notification.permission !== "granted") {
-        Notification.requestPermission();
-    }
 
     function appendLog(item) {
         var doScroll = log.scrollTop > log.scrollHeight - log.clientHeight - 1;
@@ -72,7 +66,6 @@ window.onload = function () {
             var timestampItem = document.createElement("span");
             timestampItem.textContent = `[${message.timestamp}]`;
             timestampItem.className = "timestamp";
-            let showNotification = false;
 
             if (message.type === "join" || message.type === "leave") {
                 item.className = "system_notice";
@@ -99,21 +92,8 @@ window.onload = function () {
                 messageContainer.appendChild(usernameItem);
                 messageContainer.appendChild(messageItem);
                 item = messageContainer;
-
-                // Update the page title and increment the new message count
-                newMessageCount++;
-                document.title = `(${newMessageCount}) SupChat`;
-                showNotification = true;
             }
             appendLog(item);
-
-            // Send notification if permission is granted
-            if (showNotification && Notification.permission === "granted") {
-                new Notification(`New message from @${message.user}`, {
-                    body: message.content,
-                    icon: '/path/to/icon.png' // You can specify an icon path here
-                });
-            }
         };
     } else {
         var item = document.createElement("div");
