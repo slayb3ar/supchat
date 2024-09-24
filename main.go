@@ -298,10 +298,9 @@ func main() {
 	})
 
 	// Start server
-	loggedMux := Logger(mux)
     port := flag.String("port", "8000", "specify the port to listen on")
     flag.Parse()
-    err = http.ListenAndServe(":" + *port, loggedMux)
+    err = http.ListenAndServe(":" + *port, mux)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
