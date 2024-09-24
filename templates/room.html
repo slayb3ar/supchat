@@ -14,9 +14,7 @@
     </header>
     <div id="log"></div>
     <form id="form">
-        <textarea
-            type="text" id="msg" autofocus placeholder="Enter message...">
-        </textarea>
+        <textarea type="text" id="msg" autofocus placeholder="Enter message..."></textarea>
         <input type="submit" value="Send">
     </form>
 </body>
@@ -26,8 +24,25 @@ window.onload = function () {
     var msg = document.getElementById("msg");
     var log = document.getElementById("log");
     var room = document.location.pathname.split("/").pop();
-    document.title = room;
+    document.title = `supchat - ${room}`;
 
+    // Variable to track notification permission state
+    let notificationPermissionGranted = false;
+
+    // Function to request notification permission
+    function requestNotificationPermission() {
+        if ('Notification' in window) {
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    notificationPermissionGranted = true;
+                } else {
+                    console.log('Notification permission denied.');
+                }
+            });
+        }
+    }
+
+    // Function to append log messages
     function appendLog(item) {
         var doScroll = log.scrollTop > log.scrollHeight - log.clientHeight - 1;
         log.appendChild(item);
@@ -36,6 +51,7 @@ window.onload = function () {
         }
     }
 
+    // Function to convert a string to a color
     function stringToColor(str) {
         let hash = 0;
         for (let i = 0; i < str.length; i++) {
@@ -45,16 +61,33 @@ window.onload = function () {
         return "#" + "00000".substring(0, 6 - c.length) + c;
     }
 
-    msg.onkeydown = (() => {
-      if (event.keyCode == 13 && !event.shiftKey){
-        if (!conn) return false;
-        if (!msg.value) return false;
-        conn.send(msg.value);
-        msg.value = "";
-        return false;
-      }
-    });
+    // Event handler for sending messages
+    msg.onkeydown = (event) => {
+        if (event.keyCode == 13 && !event.shiftKey) {
+            if (!conn) return false;
+            if (!msg.value) return false;
 
+            if (!notificationPermissionGranted) {
+                requestNotificationPermission(); // Request permission on the first send
+            }
+
+            conn.send(msg.value);
+            msg.value = "";
+            return false;
+        }
+    };
+
+    // Function to show notifications
+    function showNotification(title, message) {
+        if (notificationPermissionGranted) {
+            new Notification(title, {
+                body: message,
+                icon: 'icon.png' // Optional: URL to an icon
+            });
+        }
+    }
+
+    // Establish WebSocket connection
     if (window["WebSocket"]) {
         conn = new WebSocket(`wss://${document.location.host}/ws/${room}`);
         conn.onclose = function (evt) {
@@ -71,13 +104,11 @@ window.onload = function () {
 
             if (message.type === "join" || message.type === "leave") {
                 item.className = "system_notice";
-
                 var usernameItem = document.createElement("span");
                 var messageItem = document.createElement("span");
                 usernameItem.style.color = stringToColor(message.user);
                 usernameItem.textContent = `@${message.user} `;
                 messageItem.innerHTML = message.content.replace(/\n/g, "<br>");
-
                 item.appendChild(timestampItem);
                 item.appendChild(usernameItem);
                 item.appendChild(messageItem);
@@ -94,6 +125,11 @@ window.onload = function () {
                 messageContainer.appendChild(usernameItem);
                 messageContainer.appendChild(messageItem);
                 item = messageContainer;
+
+                // Check if the document is visible and show notification if hidden
+                if (document.visibilityState === 'hidden') {
+                    showNotification(`New message from @${message.user}`, message.content);
+                }
             }
             appendLog(item);
         };
@@ -103,5 +139,12 @@ window.onload = function () {
         appendLog(item);
     }
 };
+
+// Listen for visibility changes
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+        // Optionally, do something when the page becomes visible
+    }
+});
 </script>
 </html>
