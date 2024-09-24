@@ -25,6 +25,8 @@ window.onload = function () {
     var conn;
     var msg = document.getElementById("msg");
     var log = document.getElementById("log");
+    var room = document.location.pathname.split("/").pop();
+    document.title = room;
 
     function appendLog(item) {
         var doScroll = log.scrollTop > log.scrollHeight - log.clientHeight - 1;
@@ -54,7 +56,7 @@ window.onload = function () {
     });
 
     if (window["WebSocket"]) {
-        conn = new WebSocket("wss://" + document.location.host + "/ws/" + document.location.pathname.split("/").pop());
+        conn = new WebSocket(`wss://${document.location.host}/ws/${room}`);
         conn.onclose = function (evt) {
             var item = document.createElement("div");
             item.innerHTML = "<b>Connection closed.</b>";
