@@ -10,7 +10,7 @@
 </head>
 <body>
     <header>
-        <a href="/">SupChat 🏠</a> <!-- Added a link to the home page -->
+        <a href="/">SupChat 🏠</a>
     </header>
     <div id="log"></div>
     <form id="form">
@@ -25,6 +25,12 @@ window.onload = function () {
     var conn;
     var msg = document.getElementById("msg");
     var log = document.getElementById("log");
+    var newMessageCount = 0; // Track the number of new messages
+
+    // Request notification permission
+    if (Notification.permission !== "granted") {
+        Notification.requestPermission();
+    }
 
     function appendLog(item) {
         var doScroll = log.scrollTop > log.scrollHeight - log.clientHeight - 1;
@@ -51,7 +57,7 @@ window.onload = function () {
         msg.value = "";
         return false;
       }
-    })
+    });
 
     if (window["WebSocket"]) {
         conn = new WebSocket("wss://" + document.location.host + "/ws/" + document.location.pathname.split("/").pop());
@@ -64,8 +70,10 @@ window.onload = function () {
             var message = JSON.parse(evt.data);
             var item = document.createElement("div");
             var timestampItem = document.createElement("span");
-            timestampItem.textContent = `[${message.timestamp}]`
-            timestampItem.className = "timestamp"
+            timestampItem.textContent = `[${message.timestamp}]`;
+            timestampItem.className = "timestamp";
+            let showNotification = false;
+
             if (message.type === "join" || message.type === "leave") {
                 item.className = "system_notice";
 
@@ -73,8 +81,9 @@ window.onload = function () {
                 var messageItem = document.createElement("span");
                 usernameItem.style.color = stringToColor(message.user);
                 usernameItem.textContent = `@${message.user} `;
-                messageItem.innerHTML = message.content.replace(/\n/g, "<br>"); // handle new lines
-                item.appendChild(timestampItem)
+                messageItem.innerHTML = message.content.replace(/\n/g, "<br>");
+
+                item.appendChild(timestampItem);
                 item.appendChild(usernameItem);
                 item.appendChild(messageItem);
             } else if (message.type === "message") {
@@ -82,16 +91,29 @@ window.onload = function () {
                 var messageItem = document.createElement("span");
                 usernameItem.style.color = stringToColor(message.user);
                 usernameItem.textContent = `@${message.user}: `;
-                messageItem.innerHTML = message.content.replace(/\n/g, "<br>"); // handle new lines
+                messageItem.innerHTML = message.content.replace(/\n/g, "<br>");
 
                 var messageContainer = document.createElement("div");
                 messageContainer.className = "msg_container";
-                messageContainer.appendChild(timestampItem)
+                messageContainer.appendChild(timestampItem);
                 messageContainer.appendChild(usernameItem);
                 messageContainer.appendChild(messageItem);
                 item = messageContainer;
+
+                // Update the page title and increment the new message count
+                newMessageCount++;
+                document.title = `(${newMessageCount}) SupChat`;
+                showNotification = true;
             }
             appendLog(item);
+
+            // Send notification if permission is granted
+            if (showNotification && Notification.permission === "granted") {
+                new Notification(`New message from @${message.user}`, {
+                    body: message.content,
+                    icon: '/path/to/icon.png' // You can specify an icon path here
+                });
+            }
         };
     } else {
         var item = document.createElement("div");
