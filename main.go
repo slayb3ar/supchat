@@ -7,9 +7,38 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"time"
 	"sync"
 )
 
+// Logger is a middleware that logs HTTP requests
+func Logger(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+
+		// Create a ResponseRecorder to capture the status code
+		rr := &ResponseRecorder{ResponseWriter: w, statusCode: http.StatusOK}
+		next.ServeHTTP(rr, r)
+
+		duration := time.Since(start)
+		log.Printf("Method: %s, Route: %s, Status: %d, Duration: %v\n",
+			r.Method, r.URL.Path, rr.statusCode, duration)
+	})
+}
+
+// ResponseRecorder wraps the ResponseWriter to capture the status code
+type ResponseRecorder struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+// WriteHeader captures the status code
+func (rr *ResponseRecorder) WriteHeader(code int) {
+	rr.statusCode = code
+	rr.ResponseWriter.WriteHeader(code)
+}
+
+// User struct
 type User struct {
 	Username string
 	HashedPassword string
@@ -269,9 +298,10 @@ func main() {
 	})
 
 	// Start server
+	loggedMux := Logger(mux)
     port := flag.String("port", "8000", "specify the port to listen on")
     flag.Parse()
-    err = http.ListenAndServe(":" + *port, mux)
+    err = http.ListenAndServe(":" + *port, loggedMux)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
