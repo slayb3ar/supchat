@@ -108,7 +108,7 @@ window.onload = function () {
                 var messageItem = document.createElement("span");
                 usernameItem.style.color = stringToColor(message.user);
                 usernameItem.textContent = `@${message.user} `;
-                messageItem.innerHTML = message.content.replace(/\n/g, "<br>");
+                messageItem.textContent = message.content;
                 item.appendChild(timestampItem);
                 item.appendChild(usernameItem);
                 item.appendChild(messageItem);
@@ -117,7 +117,7 @@ window.onload = function () {
                 var messageItem = document.createElement("span");
                 usernameItem.style.color = stringToColor(message.user);
                 usernameItem.textContent = `@${message.user}: `;
-                messageItem.innerHTML = message.content.replace(/\n/g, "<br>");
+                messageItem.textContent = message.content.replace(/\n/g, "<br>");  // Escaping dangerous content
 
                 var messageContainer = document.createElement("div");
                 messageContainer.className = "msg_container";
