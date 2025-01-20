@@ -172,7 +172,7 @@ func (db *DB) GetRoomMessages(roomID string) ([]Message, error) {
 	var messages []Message
 	for rows.Next() {
 		var msg Message
-		err := rows.Scan(&msg.Content, &msg.User, &msg.Timestamp)
+		err := rows.Scan(&msg.Content, &msg.User, &msg.Timestamp, &msg.RowId)
 		if err != nil {
 			return nil, fmt.Errorf("error scanning message row: %w", err)
 		}

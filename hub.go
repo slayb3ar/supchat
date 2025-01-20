@@ -13,6 +13,7 @@ type Message struct {
 	Content   string `json:"content"`        // Content of the message
 	User      string `json:"user,omitempty"` // Username of the sender (optional)
 	Timestamp string `json:"timestamp"`      // Timestamp of the message
+	RowId     string `json:"rowid"`          // Row ID of the message
 }
 
 // Hub maintains the set of active Clients and handles message broadcasting.
