@@ -1,150 +1,153 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SupChat</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏠</text></svg>">
-    <link rel="stylesheet" href="/assets/base.css">
-    <link rel="stylesheet" href="/assets/room.css">
-</head>
-<body>
-    <header>
-        <a href="/">SupChat 🏠</a>
-    </header>
-    <div id="log"></div>
-    <form id="form">
-        <textarea type="text" id="msg" autofocus placeholder="Enter message..."></textarea>
-        <input type="submit" value="Send">
-    </form>
-</body>
-<script>
-window.onload = function () {
-    var conn;
-    var msg = document.getElementById("msg");
-    var log = document.getElementById("log");
-    var room = document.location.pathname.split("/").pop();
-    document.title = `supchat - ${room}`;
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>SupChat</title>
+        <link
+            rel="icon"
+            href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏠</text></svg>"
+        />
+        <link rel="stylesheet" href="/assets/base.css" />
+        <link rel="stylesheet" href="/assets/room.css" />
+    </head>
+    <body>
+        <header>
+            <a href="/">SupChat 🏠</a>
+        </header>
+        <div id="log"></div>
+        <form id="form">
+            <textarea type="text" id="msg" autofocus placeholder="Enter message..."></textarea>
+            <input type="submit" value="Send" />
+        </form>
+    </body>
+    <script>
+        window.onload = function () {
+            var conn;
+            var msg = document.getElementById("msg");
+            var log = document.getElementById("log");
+            var room = document.location.pathname.split("/").pop();
+            document.title = `supchat - ${room}`;
 
-    // Variable to track notification permission state
-    let notificationPermissionGranted = false;
+            // Variable to track notification permission state
+            let notificationPermissionGranted = false;
 
-    // Function to request notification permission
-    function requestNotificationPermission() {
-        if ('Notification' in window) {
-            Notification.requestPermission().then(permission => {
-                if (permission === 'granted') {
-                    notificationPermissionGranted = true;
-                } else {
-                    console.log('Notification permission denied.');
-                }
-            });
-        }
-    }
-
-    // Function to append log messages
-    function appendLog(item) {
-        var doScroll = log.scrollTop > log.scrollHeight - log.clientHeight - 1;
-        log.appendChild(item);
-        if (doScroll) {
-            log.scrollTop = log.scrollHeight - log.clientHeight;
-        }
-    }
-
-    // Function to convert a string to a color
-    function stringToColor(str) {
-        let hash = 0;
-        for (let i = 0; i < str.length; i++) {
-            hash = str.charCodeAt(i) + ((hash << 5) - hash);
-        }
-        const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
-        return "#" + "00000".substring(0, 6 - c.length) + c;
-    }
-
-    // Event handler for sending messages
-    msg.onkeydown = (event) => {
-        if (event.keyCode == 13 && !event.shiftKey) {
-            if (!conn) return false;
-            if (!msg.value) return false;
-
-            if (!notificationPermissionGranted) {
-                requestNotificationPermission(); // Request permission on the first send
-            }
-
-            conn.send(msg.value);
-            msg.value = "";
-            return false;
-        }
-    };
-
-    // Function to show notifications
-    function showNotification(title, message) {
-        if (notificationPermissionGranted) {
-            new Notification(title, {
-                body: message,
-                icon: 'icon.png' // Optional: URL to an icon
-            });
-        }
-    }
-
-    // Establish WebSocket connection
-    if (window["WebSocket"]) {
-        conn = new WebSocket(`wss://${document.location.host}/ws/${room}`);
-        conn.onclose = function (evt) {
-            var item = document.createElement("div");
-            item.innerHTML = "<b>Connection closed.</b>";
-            appendLog(item);
-        };
-        conn.onmessage = function (evt) {
-            var message = JSON.parse(evt.data);
-            var item = document.createElement("div");
-            var timestampItem = document.createElement("span");
-            timestampItem.textContent = `[${message.timestamp}]`;
-            timestampItem.className = "timestamp";
-
-            if (message.type === "join" || message.type === "leave") {
-                item.className = "system_notice";
-                var usernameItem = document.createElement("span");
-                var messageItem = document.createElement("span");
-                usernameItem.style.color = stringToColor(message.user);
-                usernameItem.textContent = `@${message.user} `;
-                messageItem.textContent = message.content;
-                item.appendChild(timestampItem);
-                item.appendChild(usernameItem);
-                item.appendChild(messageItem);
-            } else if (message.type === "message") {
-                var usernameItem = document.createElement("span");
-                var messageItem = document.createElement("span");
-                usernameItem.style.color = stringToColor(message.user);
-                usernameItem.textContent = `@${message.user}: `;
-                messageItem.textContent = message.content.replace(/\n/g, "<br>");  // Escaping dangerous content
-
-                var messageContainer = document.createElement("div");
-                messageContainer.className = "msg_container";
-                messageContainer.appendChild(timestampItem);
-                messageContainer.appendChild(usernameItem);
-                messageContainer.appendChild(messageItem);
-                item = messageContainer;
-
-                // Check if the document is visible and show notification if hidden
-                if (document.visibilityState === 'hidden') {
-                    showNotification(`New message from @${message.user}`, message.content);
+            // Function to request notification permission
+            function requestNotificationPermission() {
+                if ("Notification" in window) {
+                    Notification.requestPermission().then((permission) => {
+                        if (permission === "granted") {
+                            notificationPermissionGranted = true;
+                        } else {
+                            console.log("Notification permission denied.");
+                        }
+                    });
                 }
             }
-            appendLog(item);
-        };
-    } else {
-        var item = document.createElement("div");
-        item.innerHTML = "<b>Your browser does not support WebSockets.</b>";
-        appendLog(item);
-    }
-};
 
-// Listen for visibility changes
-document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') {
-        // Optionally, do something when the page becomes visible
-    }
-});
-</script>
+            // Function to append log messages
+            function appendLog(item) {
+                var doScroll = log.scrollTop > log.scrollHeight - log.clientHeight - 1;
+                log.appendChild(item);
+                if (doScroll) {
+                    log.scrollTop = log.scrollHeight - log.clientHeight;
+                }
+            }
+
+            // Function to convert a string to a color
+            function stringToColor(str) {
+                let hash = 0;
+                for (let i = 0; i < str.length; i++) {
+                    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+                }
+                const c = (hash & 0x00ffffff).toString(16).toUpperCase();
+                return "#" + "00000".substring(0, 6 - c.length) + c;
+            }
+
+            // Event handler for sending messages
+            msg.onkeydown = (event) => {
+                if (event.keyCode == 13 && !event.shiftKey) {
+                    if (!conn) return false;
+                    if (!msg.value) return false;
+
+                    if (!notificationPermissionGranted) {
+                        requestNotificationPermission(); // Request permission on the first send
+                    }
+
+                    conn.send(msg.value);
+                    msg.value = "";
+                    return false;
+                }
+            };
+
+            // Function to show notifications
+            function showNotification(title, message) {
+                if (notificationPermissionGranted) {
+                    new Notification(title, {
+                        body: message,
+                        icon: "icon.png", // Optional: URL to an icon
+                    });
+                }
+            }
+
+            // Establish WebSocket connection
+            if (window["WebSocket"]) {
+                conn = new WebSocket(`wss://${document.location.host}/ws/${room}`);
+                conn.onclose = function (evt) {
+                    var item = document.createElement("div");
+                    item.innerHTML = "<b>Connection closed.</b>";
+                    appendLog(item);
+                };
+                conn.onmessage = function (evt) {
+                    var message = JSON.parse(evt.data);
+                    var item = document.createElement("div");
+                    var timestampItem = document.createElement("span");
+                    timestampItem.textContent = `[${message.rowid}]`;
+                    timestampItem.className = "timestamp";
+
+                    if (message.type === "join" || message.type === "leave") {
+                        item.className = "system_notice";
+                        var usernameItem = document.createElement("span");
+                        var messageItem = document.createElement("span");
+                        usernameItem.style.color = stringToColor(message.user);
+                        usernameItem.textContent = `@${message.user} `;
+                        messageItem.textContent = message.content;
+                        item.appendChild(timestampItem);
+                        item.appendChild(usernameItem);
+                        item.appendChild(messageItem);
+                    } else if (message.type === "message") {
+                        var usernameItem = document.createElement("span");
+                        var messageItem = document.createElement("span");
+                        usernameItem.style.color = stringToColor(message.user);
+                        usernameItem.textContent = `@${message.user}: `;
+                        messageItem.textContent = message.content.replace(/\n/g, "<br>"); // Escaping dangerous content
+
+                        var messageContainer = document.createElement("div");
+                        messageContainer.className = "msg_container";
+                        messageContainer.appendChild(timestampItem);
+                        messageContainer.appendChild(usernameItem);
+                        messageContainer.appendChild(messageItem);
+                        item = messageContainer;
+
+                        // Check if the document is visible and show notification if hidden
+                        if (document.visibilityState === "hidden") {
+                            showNotification(`New message from @${message.user}`, message.content);
+                        }
+                    }
+                    appendLog(item);
+                };
+            } else {
+                var item = document.createElement("div");
+                item.innerHTML = "<b>Your browser does not support WebSockets.</b>";
+                appendLog(item);
+            }
+        };
+
+        // Listen for visibility changes
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === "visible") {
+                // Optionally, do something when the page becomes visible
+            }
+        });
+    </script>
 </html>

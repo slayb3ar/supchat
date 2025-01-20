@@ -3,15 +3,16 @@
 package main
 
 import (
-	"database/sql"
-	"fmt"
-	"golang.org/x/crypto/bcrypt"
 	"crypto/rand"
+	"database/sql"
 	"encoding/hex"
+	"fmt"
 	"log"
 	"net/http"
 	"net/url"
 	"runtime"
+
+	"golang.org/x/crypto/bcrypt"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -162,7 +163,7 @@ func (db *DB) StoreMessage(roomID, username, content, timestamp string) error {
 }
 
 func (db *DB) GetRoomMessages(roomID string) ([]Message, error) {
-	rows, err := db.Query("SELECT content, username, timestamp FROM messages WHERE room_id = ? ORDER BY timestamp", roomID)
+	rows, err := db.Query("SELECT content, username, timestamp, rowid FROM messages WHERE room_id = ? ORDER BY rowid", roomID)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching room messages: %w", err)
 	}
@@ -187,38 +188,36 @@ func (db *DB) GetRoomMessages(roomID string) ([]Message, error) {
 }
 
 func (db *DB) GetRooms() (map[string]int, error) {
-    rows, err := db.Query(`
+	rows, err := db.Query(`
         SELECT r.id, COUNT(DISTINCT m.username) as user_count
         FROM rooms r
         LEFT JOIN messages m ON r.id = m.room_id
         GROUP BY r.id
     `)
-    if err != nil {
-        return nil, err
-    }
-    defer rows.Close()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
 
-    rooms := make(map[string]int)
-    for rows.Next() {
-        var roomID string
-        var userCount int
-        if err := rows.Scan(&roomID, &userCount); err != nil {
-            return nil, err
-        }
-        rooms[roomID] = userCount
-    }
-    return rooms, nil
+	rooms := make(map[string]int)
+	for rows.Next() {
+		var roomID string
+		var userCount int
+		if err := rows.Scan(&roomID, &userCount); err != nil {
+			return nil, err
+		}
+		rooms[roomID] = userCount
+	}
+	return rooms, nil
 }
 
 func (db *DB) GetUserCount() (int, error) {
-    var count int
-    err := db.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
-    return count, err
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
+	return count, err
 }
 
-//
 // Generate session token
-//
 func generateSessionToken() string {
 	bytes := make([]byte, 32)
 	if _, err := rand.Read(bytes); err != nil {
@@ -227,9 +226,7 @@ func generateSessionToken() string {
 	return hex.EncodeToString(bytes)
 }
 
-//
 // Get username from session
-//
 func getUserFromSession(rm *RoomManager, r *http.Request) *User {
 	cookie, err := r.Cookie("SessionToken")
 	if err != nil {
@@ -252,10 +249,7 @@ func getUserFromSession(rm *RoomManager, r *http.Request) *User {
 	return user
 }
 
-
-//
 // Hash Password
-//
 func hashPassword(password string) (string, error) {
 	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
@@ -264,9 +258,7 @@ func hashPassword(password string) (string, error) {
 	return string(hashedBytes), nil
 }
 
-//
 // Verify Password
-//
 func verifyPassword(hashedPassword, password string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 	return err == nil
