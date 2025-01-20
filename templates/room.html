@@ -102,7 +102,7 @@
                     var message = JSON.parse(evt.data);
                     var item = document.createElement("div");
                     var timestampItem = document.createElement("span");
-                    timestampItem.textContent = `[${message.rowid}]`;
+                    timestampItem.textContent = `[Message #${message.rowid}]`;
                     timestampItem.className = "timestamp";
 
                     if (message.type === "join" || message.type === "leave") {
